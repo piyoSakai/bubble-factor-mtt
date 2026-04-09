@@ -586,7 +586,10 @@ function App() {
               <select
                 className="preset-select"
                 value=""
-                onChange={(e) => loadPreset(e.target.value)}
+                onChange={(e) => {
+                  loadPreset(e.target.value);
+                  e.target.value = '';
+                }}
                 aria-label="Load preset scenario"
               >
                 <option value="" disabled>
