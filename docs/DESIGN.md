@@ -227,7 +227,7 @@ code paths that could exfiltrate data.
 - Grid blowout prevention: all `.app` grid items use `min-width: 0` to stop wide matrix tables from inflating the page width.
 - Tap targets ≥ 44×44 CSS px; circular icon buttons for Add (+) and Remove (-).
 - BF matrix scrollable horizontally; cells open a bottom sheet for detail; "Fit to screen" mode scales the matrix to the viewport width for screenshots.
-- `inputmode="decimal"` on numeric fields; negative stacks clamped to 0 on blur.
+- `inputmode="decimal"` on numeric fields; negative stacks are rejected by `validateInput` and surfaced as a warning rather than silently clamped.
 - Sticky recalculate bar appears at the bottom of the viewport when inputs change; disappears when results are up-to-date.
 
 ---
