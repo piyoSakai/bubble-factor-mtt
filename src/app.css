@@ -118,6 +118,11 @@
   padding: 0 10px;
 }
 
+.phase-select select option {
+  color: #0f172a;
+  background: #ffffff;
+}
+
 button:disabled {
   opacity: 0.55;
   cursor: not-allowed;
