@@ -358,6 +358,15 @@ button:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+.matrix-header-avg {
+  display: block;
+  margin-top: 2px;
+  color: #94a0bd;
+  font-size: 0.72rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
 .legend-item {
   display: inline-flex;
   align-items: center;
@@ -425,6 +434,33 @@ button:focus-visible {
   font-size: 1.32rem;
 }
 
+.app-footer {
+  margin-top: 48px;
+  padding: 24px 16px;
+  border-top: 1px solid var(--surface-2);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-footer p {
+  font-size: 0.75rem;
+  color: var(--text-2);
+  margin: 0;
+  line-height: 1.6;
+}
+
+.app-footer a {
+  color: var(--text-2);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.app-footer a:hover {
+  color: var(--text-1);
+}
+
 @media (min-width: 760px) {
   .app-shell {
     padding: 24px;
@@ -436,7 +472,7 @@ button:focus-visible {
   }
 
   .summary-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .detail-grid {

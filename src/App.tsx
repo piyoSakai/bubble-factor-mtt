@@ -11,18 +11,18 @@ const createPlayer = (index: number, stack: number): PlayerInput => ({
   stack,
 });
 
-const defaultPlayers = [
-  createPlayer(0, 56.13),
-  createPlayer(1, 52.13),
-  createPlayer(2, 20.13),
-  createPlayer(3, 64.13),
-  createPlayer(4, 29.13),
-  createPlayer(5, 23.13),
-  createPlayer(6, 30.13),
-  createPlayer(7, 50.13),
+const defaultPlayers: PlayerInput[] = [
+  { id: crypto.randomUUID(), name: 'UTG', stack: 60.13 },
+  { id: crypto.randomUUID(), name: 'UTG1', stack: 83.13 },
+  { id: crypto.randomUUID(), name: 'LJ', stack: 20.13 },
+  { id: crypto.randomUUID(), name: 'HJ', stack: 71.13 },
+  { id: crypto.randomUUID(), name: 'CO', stack: 73.13 },
+  { id: crypto.randomUUID(), name: 'BTN', stack: 29.13 },
+  { id: crypto.randomUUID(), name: 'SB', stack: 36.13 },
+  { id: crypto.randomUUID(), name: 'BB', stack: 27 },
 ];
 
-const defaultPayouts = [1000, 700, 520, 400, 300, 220, 170, 140];
+const defaultPayouts = [7656, 5668, 4196, 3204, 2456, 1924, 1484, 1140];
 
 const defaultState: CalculationInput = {
   players: defaultPlayers,
@@ -64,6 +64,12 @@ const bubbleFactorFormatter = new Intl.NumberFormat('en-US', {
 
 const formatRiskPremium = (value: number | null): string =>
   value === null ? '-' : `${value > 0 ? '+' : ''}${Math.round(value)}%`;
+
+const formatBubbleFactor = (value: number | null): string =>
+  value === null ? '-' : bubbleFactorFormatter.format(value);
+
+const average = (values: number[]): number | null =>
+  values.length > 0 ? values.reduce((total, value) => total + value, 0) / values.length : null;
 
 const readInitialState = (): CalculationInput => {
   const saved = window.localStorage.getItem(STORAGE_KEY);
@@ -202,6 +208,10 @@ function App() {
   const totalChips = useMemo(
     () => visiblePlayers.reduce((total, player) => total + player.stack, 0),
     [visiblePlayers],
+  );
+  const averageStack = useMemo(
+    () => (visiblePlayers.length > 0 ? totalChips / visiblePlayers.length : 0),
+    [totalChips, visiblePlayers.length],
   );
 
   const chipLeaderStack = useMemo(
@@ -357,15 +367,75 @@ function App() {
     };
   }, [activeCell, result, visiblePlayers]);
 
+  const matrixAverages = useMemo(() => {
+    if (!result) {
+      return null;
+    }
+
+    const call = visiblePlayers.map((_, rowIndex) => {
+      const bfValues: number[] = [];
+      const rpValues: number[] = [];
+      const row = result.bubbleMatrix[rowIndex] ?? [];
+
+      row.forEach((cell, columnIndex) => {
+        if (rowIndex === columnIndex || !cell) {
+          return;
+        }
+
+        if (cell.bubbleFactor !== null) {
+          bfValues.push(cell.bubbleFactor);
+        }
+        if (cell.riskPremium !== null) {
+          rpValues.push(cell.riskPremium);
+        }
+      });
+
+      return {
+        bubbleFactor: average(bfValues),
+        riskPremium: average(rpValues),
+      };
+    });
+
+    const shove = visiblePlayers.map((_, columnIndex) => {
+      const bfValues: number[] = [];
+      const rpValues: number[] = [];
+
+      visiblePlayers.forEach((__, rowIndex) => {
+        if (rowIndex === columnIndex) {
+          return;
+        }
+
+        const cell = result.bubbleMatrix[rowIndex]?.[columnIndex];
+        if (!cell) {
+          return;
+        }
+
+        if (cell.bubbleFactor !== null) {
+          bfValues.push(cell.bubbleFactor);
+        }
+        if (cell.riskPremium !== null) {
+          rpValues.push(cell.riskPremium);
+        }
+      });
+
+      return {
+        bubbleFactor: average(bfValues),
+        riskPremium: average(rpValues),
+      };
+    });
+
+    return { call, shove };
+  }, [result, visiblePlayers]);
+
   return (
     <div className="app-shell">
       <main className="app">
         <section className="hero">
           <div>
-            <p className="eyebrow">Local only</p>
+            <p className="eyebrow">Privacy-first · Works offline</p>
             <h1>Bubble Factor MTT</h1>
             <p className="hero-copy">
-              Exact ICM, Chip Chop, Bubble Factor, and Risk Premium with a mobile-first layout.
+              Exact ICM, Chip Chop, Bubble Factor, and Risk Premium.
             </p>
           </div>
           <div className="pill-row">
@@ -394,6 +464,10 @@ function App() {
           <article className="stat-card">
             <span className="stat-label">Stacks</span>
             <strong>{numberFormatter.format(totalChips)}</strong>
+          </article>
+          <article className="stat-card">
+            <span className="stat-label">Avg stack</span>
+            <strong>{numberFormatter.format(averageStack)}</strong>
           </article>
           <article className="stat-card">
             <span className="stat-label">Payouts</span>
@@ -620,19 +694,23 @@ function App() {
               <thead>
                 <tr>
                   <th className="sticky">Call vs shove</th>
-                  {visiblePlayers.map((player) => (
+                  {visiblePlayers.map((player, columnIndex) => (
                     <th key={`head-${player.id}`}>
-                    <span>
-                      {player.name}
-                      {getPlayerEmoji(player.stack) && (
-                        <span className="player-badge">{getPlayerEmoji(player.stack)}</span>
-                      )}
-                    </span>
-                    <span className="matrix-header-stack">
-                      {numberFormatter.format(player.stack)}
-                      {input.stackUnit === 'bb' ? ' BB' : ''}
-                    </span>
-                  </th>
+                      <span>
+                        {player.name}
+                        {getPlayerEmoji(player.stack) && (
+                          <span className="player-badge">{getPlayerEmoji(player.stack)}</span>
+                        )}
+                      </span>
+                      <span className="matrix-header-stack">
+                        {numberFormatter.format(player.stack)}
+                        {input.stackUnit === 'bb' ? ' BB' : ''}
+                      </span>
+                      <span className="matrix-header-avg">
+                        Shove BF {formatBubbleFactor(matrixAverages?.shove[columnIndex]?.bubbleFactor ?? null)} / RP{' '}
+                        {formatRiskPremium(matrixAverages?.shove[columnIndex]?.riskPremium ?? null)}
+                      </span>
+                    </th>
                   ))}
                 </tr>
               </thead>
@@ -649,6 +727,10 @@ function App() {
                       <span className="matrix-header-stack">
                         {numberFormatter.format(rowPlayer.stack)}
                         {input.stackUnit === 'bb' ? ' BB' : ''}
+                      </span>
+                      <span className="matrix-header-avg">
+                        Call BF {formatBubbleFactor(matrixAverages?.call[rowIndex]?.bubbleFactor ?? null)} / RP{' '}
+                        {formatRiskPremium(matrixAverages?.call[rowIndex]?.riskPremium ?? null)}
                       </span>
                     </th>
                     {visiblePlayers.map((columnPlayer, columnIndex) => {
@@ -759,6 +841,38 @@ function App() {
           </div>
         ) : null}
       </main>
+
+      <footer className="app-footer">
+        <p>
+          Open-source software — algorithm is fully verifiable.{' '}
+          <a
+            href="https://github.com/piyoSakai/bubble-factor-mtt"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            Clone, fork, or contribute on GitHub
+          </a>
+          . Commercial use permitted under the{' '}
+          <a
+            href="https://github.com/piyoSakai/bubble-factor-mtt/blob/main/LICENSE"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            MIT License
+          </a>
+          .
+        </p>
+        <p>
+          &copy; 2026{' '}
+          <a
+            href="https://x.com/YEBISU_NLH"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            YEBISU
+          </a>
+        </p>
+      </footer>
     </div>
   );
 }
