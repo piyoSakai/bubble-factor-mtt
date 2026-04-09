@@ -826,19 +826,17 @@ function App() {
                   <th className="sticky">Call vs shove</th>
                   {visiblePlayers.map((player, columnIndex) => (
                     <th key={`head-${player.id}`}>
-                      <span>
+                      <span className="matrix-header-name">
                         {player.name}
                         {getPlayerEmoji(player.stack) && (
                           <span className="player-badge">{getPlayerEmoji(player.stack)}</span>
                         )}
-                      </span>
-                      <span className="matrix-header-stack">
-                        {numberFormatter.format(player.stack)}
-                        {input.stackUnit === 'bb' ? ' BB' : ''}
+                        <span className="matrix-header-bb">
+                          {numberFormatter.format(player.stack)}{input.stackUnit === 'bb' ? 'bb' : ''}
+                        </span>
                       </span>
                       <span className="matrix-header-avg">
-                        Shove BF {formatBubbleFactor(matrixAverages?.shove[columnIndex]?.bubbleFactor ?? null)} / RP{' '}
-                        {formatRiskPremium(matrixAverages?.shove[columnIndex]?.riskPremium ?? null)}
+                        BF {formatBubbleFactor(matrixAverages?.shove[columnIndex]?.bubbleFactor ?? null)} · {formatRiskPremium(matrixAverages?.shove[columnIndex]?.riskPremium ?? null)}
                       </span>
                     </th>
                   ))}
@@ -848,19 +846,17 @@ function App() {
                 {visiblePlayers.map((rowPlayer, rowIndex) => (
                   <tr key={`row-${rowPlayer.id}`}>
                     <th className="sticky">
-                      <span>
+                      <span className="matrix-header-name">
                         {rowPlayer.name}
                         {getPlayerEmoji(rowPlayer.stack) && (
                           <span className="player-badge">{getPlayerEmoji(rowPlayer.stack)}</span>
                         )}
-                      </span>
-                      <span className="matrix-header-stack">
-                        {numberFormatter.format(rowPlayer.stack)}
-                        {input.stackUnit === 'bb' ? ' BB' : ''}
+                        <span className="matrix-header-bb">
+                          {numberFormatter.format(rowPlayer.stack)}{input.stackUnit === 'bb' ? 'bb' : ''}
+                        </span>
                       </span>
                       <span className="matrix-header-avg">
-                        Call BF {formatBubbleFactor(matrixAverages?.call[rowIndex]?.bubbleFactor ?? null)} / RP{' '}
-                        {formatRiskPremium(matrixAverages?.call[rowIndex]?.riskPremium ?? null)}
+                        BF {formatBubbleFactor(matrixAverages?.call[rowIndex]?.bubbleFactor ?? null)} · {formatRiskPremium(matrixAverages?.call[rowIndex]?.riskPremium ?? null)}
                       </span>
                     </th>
                     {visiblePlayers.map((columnPlayer, columnIndex) => {

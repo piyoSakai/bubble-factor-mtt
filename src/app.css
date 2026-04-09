@@ -319,10 +319,16 @@ button:focus-visible {
 }
 
 .result-table th,
-.result-table td,
+.result-table td {
+  padding: 12px;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid rgba(160, 176, 255, 0.1);
+}
+
 .matrix th,
 .matrix td {
-  padding: 12px;
+  padding: 8px 10px;
   text-align: left;
   white-space: nowrap;
   border-bottom: 1px solid rgba(160, 176, 255, 0.1);
@@ -356,15 +362,15 @@ button:focus-visible {
 
 .matrix-cell {
   padding: 0 !important;
-  min-width: 84px;
+  min-width: 72px;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
 
 .matrix-button {
   width: 100%;
-  min-height: 72px;
-  padding: 10px 8px;
+  min-height: 60px;
+  padding: 8px 6px;
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -413,11 +419,15 @@ button:focus-visible {
   line-height: 1;
 }
 
-.matrix-header-stack {
-  display: block;
-  margin-top: 3px;
+.matrix-header-name {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+}
+
+.matrix-header-bb {
   color: #6e7d9e;
-  font-size: 0.78rem;
+  font-size: 0.72rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
@@ -426,7 +436,7 @@ button:focus-visible {
   display: block;
   margin-top: 2px;
   color: #94a0bd;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
