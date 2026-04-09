@@ -273,24 +273,54 @@ scenarios are explicitly out of scope until a reliable approximation model is de
 - User enters BF guesses for every opponent in the row.
 - Submit reveals exact BF values with per-cell error and round score.
 
-### 9.3 Payout presets (8 total)
+### 9.3 Payout presets (9 total)
 
-| ID | Description | Players | Paid spots |
-|----|-------------|---------|------------|
-| **A1** | 1000-player FT — 8 left | 8 | 8 (top 150 of 1000 scaled) |
-| **A1'** | 1000-player FT — 5 left | 5 | 5 |
-| **A1''** | 1000-player FT — 3 left | 3 | 3 |
-| **A2** | 200-player FT — 8 left | 8 | 8 (top 30 of 200 scaled) |
-| **B** | Satellite — 8 players, top 3 ITM | 8 | 3 (equal value) |
-| **B'** | Satellite — 8 players, top 6 ITM | 8 | 6 (equal value) |
-| **C** | Winner-take-most — steep gradient | 8 | 8 |
-| **E** | Small-field FT — 8 players, top 6 ITM | 8 | 6 (descending) |
+All dollar amounts are from the Wizard reference payout tables shown below.
 
-Notes on presets:
-- A1 / A1' / A1'' use the same 1000-player Wizard payout ladder, truncated to N spots.
-- B / B' use equal-value payouts; the satellite dynamics make BF estimation non-trivial near
-  the bubble.
-- D (deep run / near-bubble with M3 approximation) was considered and dropped.
+#### A group — 1000-player MTT (Wizard ladder)
+
+| ID | Players left | Payouts |
+|----|-------------|---------|
+| **A1** | 8 | $30,380 / $21,920 / $15,880 / $11,520 / $8,340 / $6,120 / $4,480 / $3,280 |
+| **A1'** | 5 | $30,380 / $21,920 / $15,880 / $11,520 / $8,340 |
+| **A1''** | 3 | $30,380 / $21,920 / $15,880 |
+
+#### A2 — 200-player MTT (Wizard ladder, 8 left)
+
+Payouts: $7,656 / $5,668 / $4,196 / $3,204 / $2,456 / $1,924 / $1,484 / $1,140
+
+#### B group — Satellite (8 players, equal-ticket structure)
+
+| ID | Paid spots | Payout values |
+|----|-----------|---------------|
+| **B** | Top 3 ITM | $1,000 / $1,000 / $1,000 / $0 / $0 / $0 / $0 / $0 |
+| **B'** | Top 6 ITM (flat) | $1,000 / $1,000 / $1,000 / $1,000 / $1,000 / $1,000 / $0 / $0 |
+| **B''** | Top 6 ITM (6th = half) | $1,000 / $1,000 / $1,000 / $1,000 / $1,000 / $500 / $0 / $0 |
+
+B'' models a common structure where the bubble spot pays half a seat — the asymmetry creates
+a distinctive BF pattern compared to flat satellites.
+
+#### C — Winner-take-most (8 players, extreme gradient)
+
+Payouts: $40,000 / $8,000 / $2,400 / $800 / $300 / $150 / $100 / $50
+
+Designed to produce the widest range of BF values, with 1st place commanding the vast
+majority of the prize pool.
+
+#### E — Small-field FT (8 players, top 6 ITM)
+
+Payouts: $4,500 / $3,000 / $2,000 / $1,300 / $900 / $800 / $0 / $0
+
+Bottom two players are on the bubble. Small-field payout compression makes BF patterns
+noticeably different from 1000-player contexts.
+
+---
+
+**Notes:**
+- A1 / A1' / A1'' share the same Wizard 1000-player ladder — truncated to N active players.
+- A1' and A1'' exist to train intuition for how BF changes as the table shrinks.
+- B / B' / B'' isolate the ICM pressure of pure survival scenarios.
+- D (deep run / near-bubble with M3 approximation) was evaluated and dropped (see `docs/M3_APPROX_POSTMORTEM.md`).
 
 ### 9.4 Scoring model
 
