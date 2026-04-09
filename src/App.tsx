@@ -1,0 +1,687 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import './app.css';
+import type { CalculationInput, CalculationResult, PlayerInput } from './types';
+
+const STORAGE_KEY = 'bubble-factor-mtt-state-v1';
+const SAVES_KEY = 'bubble-factor-mtt-saves-v1';
+
+const createPlayer = (index: number, stack: number): PlayerInput => ({
+  id: crypto.randomUUID(),
+  name: `Player ${index + 1}`,
+  stack,
+});
+
+const defaultPlayers = [
+  createPlayer(0, 56.13),
+  createPlayer(1, 52.13),
+  createPlayer(2, 20.13),
+  createPlayer(3, 64.13),
+  createPlayer(4, 29.13),
+  createPlayer(5, 23.13),
+  createPlayer(6, 30.13),
+  createPlayer(7, 50.13),
+];
+
+const defaultPayouts = [1000, 700, 520, 400, 300, 220, 170, 140];
+
+const defaultState: CalculationInput = {
+  players: defaultPlayers,
+  payouts: defaultPayouts,
+  stackUnit: 'bb',
+};
+
+type WorkerResponse = {
+  type: 'result';
+  requestKey: string;
+  payload: CalculationResult;
+};
+
+type SavedScenario = {
+  id: string;
+  name: string;
+  savedAt: string;
+  input: CalculationInput;
+};
+
+type ActiveCell = {
+  rowIndex: number;
+  columnIndex: number;
+};
+
+const numberFormatter = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 2,
+});
+
+const valueFormatter = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 2,
+  minimumFractionDigits: 0,
+});
+
+const readInitialState = (): CalculationInput => {
+  const saved = window.localStorage.getItem(STORAGE_KEY);
+  if (!saved) {
+    return defaultState;
+  }
+
+  try {
+    const parsed = JSON.parse(saved) as CalculationInput;
+    if (!Array.isArray(parsed.players) || !Array.isArray(parsed.payouts)) {
+      return defaultState;
+    }
+
+    return {
+      players: parsed.players.map((player, index) => ({
+        id: player.id || crypto.randomUUID(),
+        name: player.name || `Player ${index + 1}`,
+        stack: Number.isFinite(player.stack) ? player.stack : 0,
+      })),
+      payouts: parsed.payouts.map((payout) => (Number.isFinite(payout) ? payout : 0)),
+      stackUnit: parsed.stackUnit === 'chips' ? 'chips' : 'bb',
+    };
+  } catch {
+    return defaultState;
+  }
+};
+
+const readSavedScenarios = (): SavedScenario[] => {
+  const saved = window.localStorage.getItem(SAVES_KEY);
+  if (!saved) {
+    return [];
+  }
+
+  try {
+    const parsed = JSON.parse(saved) as SavedScenario[];
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed.filter(
+      (scenario) =>
+        typeof scenario.id === 'string' &&
+        typeof scenario.name === 'string' &&
+        typeof scenario.savedAt === 'string' &&
+        typeof scenario.input === 'object' &&
+        scenario.input !== null,
+    );
+  } catch {
+    return [];
+  }
+};
+
+const getCellTone = (bubbleFactor: number | null): string => {
+  if (bubbleFactor === null) {
+    return 'cell-neutral';
+  }
+
+  if (bubbleFactor >= 2.1) {
+    return 'cell-hot';
+  }
+
+  if (bubbleFactor >= 1.6) {
+    return 'cell-warm';
+  }
+
+  if (bubbleFactor >= 1.25) {
+    return 'cell-mid';
+  }
+
+  return 'cell-cool';
+};
+
+const parseNumber = (value: string): number => {
+  if (value.trim() === '') {
+    return 0;
+  }
+
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+function App() {
+  const [input, setInput] = useState<CalculationInput>(() => readInitialState());
+  const [result, setResult] = useState<CalculationResult | null>(null);
+  const [completedRequestKey, setCompletedRequestKey] = useState('');
+  const [savedScenarios, setSavedScenarios] = useState<SavedScenario[]>(() => readSavedScenarios());
+  const [saveName, setSaveName] = useState('Final table sample');
+  const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
+  const workerRef = useRef<Worker | null>(null);
+  const requestKey = useMemo(() => JSON.stringify(input), [input]);
+  const isCalculating = completedRequestKey !== requestKey;
+
+  useEffect(() => {
+    const worker = new Worker(new URL('./workers/calculatorWorker.ts', import.meta.url), {
+      type: 'module',
+    });
+
+    worker.onmessage = (event: MessageEvent<WorkerResponse>) => {
+      if (event.data.type !== 'result') {
+        return;
+      }
+
+      setResult(event.data.payload);
+      setCompletedRequestKey(event.data.requestKey);
+    };
+
+    workerRef.current = worker;
+    return () => {
+      worker.terminate();
+      workerRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(input));
+    if (!workerRef.current) {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      workerRef.current?.postMessage({
+        type: 'calculate',
+        requestKey,
+        payload: input,
+      });
+    }, 180);
+
+    return () => window.clearTimeout(timeout);
+  }, [input, requestKey]);
+
+  useEffect(() => {
+    window.localStorage.setItem(SAVES_KEY, JSON.stringify(savedScenarios));
+  }, [savedScenarios]);
+
+  const visiblePlayers = useMemo(
+    () => input.players.filter((player) => player.stack > 0),
+    [input.players],
+  );
+
+  const totalPrizePool = useMemo(() => input.payouts.reduce((total, payout) => total + payout, 0), [input.payouts]);
+  const totalChips = useMemo(
+    () => visiblePlayers.reduce((total, player) => total + player.stack, 0),
+    [visiblePlayers],
+  );
+
+  const updatePlayer = (playerId: string, nextValue: Partial<PlayerInput>) => {
+    setInput((current) => ({
+      ...current,
+      players: current.players.map((player) =>
+        player.id === playerId ? { ...player, ...nextValue } : player,
+      ),
+    }));
+  };
+
+  const updatePayout = (index: number, value: number) => {
+    setInput((current) => ({
+      ...current,
+      payouts: current.payouts.map((payout, payoutIndex) =>
+        payoutIndex === index ? value : payout,
+      ),
+    }));
+  };
+
+  const addPlayer = () => {
+    setInput((current) => ({
+      ...current,
+      players: [...current.players, createPlayer(current.players.length, 0)],
+      payouts: [...current.payouts, 0],
+    }));
+  };
+
+  const removePlayer = (playerId: string) => {
+    setInput((current) => {
+      if (current.players.length <= 2) {
+        return current;
+      }
+
+      const nextPlayers = current.players.filter((player) => player.id !== playerId);
+      return {
+        ...current,
+        players: nextPlayers,
+        payouts: current.payouts.slice(0, nextPlayers.length),
+      };
+    });
+  };
+
+  const addPayout = () => {
+    setInput((current) => ({
+      ...current,
+      payouts: [...current.payouts, 0],
+    }));
+  };
+
+  const removePayout = (index: number) => {
+    setInput((current) => {
+      if (current.payouts.length <= 1) {
+        return current;
+      }
+
+      return {
+        ...current,
+        payouts: current.payouts.filter((_, payoutIndex) => payoutIndex !== index),
+      };
+    });
+  };
+
+  const loadSample = () => {
+    setInput(defaultState);
+  };
+
+  const saveScenario = () => {
+    const trimmed = saveName.trim();
+    const scenario: SavedScenario = {
+      id: crypto.randomUUID(),
+      name: trimmed || `Scenario ${savedScenarios.length + 1}`,
+      savedAt: new Date().toISOString(),
+      input,
+    };
+
+    setSavedScenarios((current) => [scenario, ...current].slice(0, 12));
+    setSaveName(scenario.name);
+  };
+
+  const loadScenario = (scenario: SavedScenario) => {
+    setInput(scenario.input);
+  };
+
+  const deleteScenario = (scenarioId: string) => {
+    setSavedScenarios((current) => current.filter((scenario) => scenario.id !== scenarioId));
+  };
+
+  const exportScenario = () => {
+    const payload = JSON.stringify(input, null, 2);
+    const blob = new Blob([payload], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const safeName = (saveName.trim() || 'bubble-factor-scenario')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '');
+
+    link.href = url;
+    link.download = `${safeName || 'bubble-factor-scenario'}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const activeCellData = useMemo(() => {
+    if (!activeCell || !result) {
+      return null;
+    }
+
+    const rowPlayer = visiblePlayers[activeCell.rowIndex];
+    const columnPlayer = visiblePlayers[activeCell.columnIndex];
+    const cell = result.bubbleMatrix[activeCell.rowIndex]?.[activeCell.columnIndex];
+
+    if (!rowPlayer || !columnPlayer || !cell) {
+      return null;
+    }
+
+    return {
+      rowPlayer,
+      columnPlayer,
+      cell,
+    };
+  }, [activeCell, result, visiblePlayers]);
+
+  return (
+    <div className="app-shell">
+      <main className="app">
+        <section className="hero">
+          <div>
+            <p className="eyebrow">Local only</p>
+            <h1>Bubble Factor MTT</h1>
+            <p className="hero-copy">
+              Exact ICM, Chip Chop, Bubble Factor, and Risk Premium with a mobile-first layout.
+            </p>
+          </div>
+          <div className="pill-row">
+            <button
+              type="button"
+              className={input.stackUnit === 'bb' ? 'pill active' : 'pill'}
+              onClick={() => setInput((current) => ({ ...current, stackUnit: 'bb' }))}
+            >
+              BB
+            </button>
+            <button
+              type="button"
+              className={input.stackUnit === 'chips' ? 'pill active' : 'pill'}
+              onClick={() => setInput((current) => ({ ...current, stackUnit: 'chips' }))}
+            >
+              Chips
+            </button>
+          </div>
+        </section>
+
+        <section className="summary-grid">
+          <article className="stat-card">
+            <span className="stat-label">Players</span>
+            <strong>{visiblePlayers.length}</strong>
+          </article>
+          <article className="stat-card">
+            <span className="stat-label">Stacks</span>
+            <strong>{numberFormatter.format(totalChips)}</strong>
+          </article>
+          <article className="stat-card">
+            <span className="stat-label">Payouts</span>
+            <strong>{input.payouts.length}</strong>
+          </article>
+          <article className="stat-card">
+            <span className="stat-label">Prize pool</span>
+            <strong>{valueFormatter.format(totalPrizePool)}</strong>
+          </article>
+        </section>
+
+        <section className="panel">
+          <div className="panel-head">
+            <h2>Players</h2>
+            <div className="action-row">
+              <button type="button" className="ghost-button" onClick={loadSample}>
+                Sample
+              </button>
+              <button type="button" className="primary-button" onClick={addPlayer}>
+                Add
+              </button>
+            </div>
+          </div>
+          <div className="list-grid">
+            {input.players.map((player, index) => (
+              <div className="input-row" key={player.id}>
+                <label>
+                  <span>Name</span>
+                  <input
+                    value={player.name}
+                    onChange={(event) => updatePlayer(player.id, { name: event.target.value })}
+                  />
+                </label>
+                <label>
+                  <span>{input.stackUnit === 'bb' ? 'Stack (BB)' : 'Stack'}</span>
+                  <input
+                    inputMode="decimal"
+                    value={player.stack}
+                    onChange={(event) =>
+                      updatePlayer(player.id, { stack: parseNumber(event.target.value) })
+                    }
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label={`Remove player ${index + 1}`}
+                  onClick={() => removePlayer(player.id)}
+                >
+                  -
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panel-head">
+            <h2>Payouts</h2>
+            <button type="button" className="primary-button" onClick={addPayout}>
+              Add
+            </button>
+          </div>
+          <div className="list-grid">
+            {input.payouts.map((payout, index) => (
+              <div className="input-row compact" key={`payout-${index}`}>
+                <label>
+                  <span>#{index + 1}</span>
+                  <input
+                    inputMode="decimal"
+                    value={payout}
+                    onChange={(event) => updatePayout(index, parseNumber(event.target.value))}
+                  />
+                </label>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label={`Remove payout ${index + 1}`}
+                  onClick={() => removePayout(index)}
+                >
+                  -
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Scenarios</h2>
+              <p className="helper-copy">Quick save, reload, or export your current setup.</p>
+            </div>
+          </div>
+          <div className="save-bar">
+            <label className="grow">
+              <span>Scenario name</span>
+              <input value={saveName} onChange={(event) => setSaveName(event.target.value)} />
+            </label>
+            <button type="button" className="ghost-button" onClick={exportScenario}>
+              Export
+            </button>
+            <button type="button" className="primary-button" onClick={saveScenario}>
+              Save
+            </button>
+          </div>
+          {savedScenarios.length > 0 ? (
+            <div className="scenario-list">
+              {savedScenarios.map((scenario) => (
+                <article className="scenario-card" key={scenario.id}>
+                  <div>
+                    <strong>{scenario.name}</strong>
+                    <p>{new Date(scenario.savedAt).toLocaleString('en-US')}</p>
+                  </div>
+                  <div className="action-row">
+                    <button
+                      type="button"
+                      className="ghost-button"
+                      onClick={() => loadScenario(scenario)}
+                    >
+                      Load
+                    </button>
+                    <button
+                      type="button"
+                      className="icon-button"
+                      aria-label={`Delete ${scenario.name}`}
+                      onClick={() => deleteScenario(scenario.id)}
+                    >
+                      -
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <div className="empty-state">No saved scenarios yet.</div>
+          )}
+        </section>
+
+        <section className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Results</h2>
+              <p className="helper-copy">Risk Premium uses a fixed 50% chip-EV baseline.</p>
+            </div>
+            <span className={isCalculating ? 'status-chip live' : 'status-chip'}>
+              {isCalculating ? 'Calculating' : 'Ready'}
+            </span>
+          </div>
+
+          {result?.warnings.length ? (
+            <div className="warning-box" role="status">
+              {result.warnings.map((warning) => (
+                <p key={warning}>{warning}</p>
+              ))}
+            </div>
+          ) : null}
+
+          <div className="table-wrap">
+            <table className="result-table">
+              <thead>
+                <tr>
+                  <th>Player</th>
+                  <th>Stack</th>
+                  <th>ICM</th>
+                  <th>Chip Chop</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visiblePlayers.map((player, index) => (
+                  <tr key={player.id}>
+                    <td>{player.name}</td>
+                    <td>{numberFormatter.format(player.stack)}</td>
+                    <td>{valueFormatter.format(result?.equities[index] ?? 0)}</td>
+                    <td>{valueFormatter.format(result?.chipChop[index] ?? 0)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Bubble Factor Matrix</h2>
+              <p className="helper-copy">Top = Risk Premium. Bottom = Bubble Factor.</p>
+            </div>
+            <div className="legend">
+              <span className="legend-item">
+                <i className="legend-swatch cool" />
+                Low
+              </span>
+              <span className="legend-item">
+                <i className="legend-swatch hot" />
+                High
+              </span>
+            </div>
+          </div>
+
+          <div className="matrix-wrap">
+            <table className="matrix">
+              <thead>
+                <tr>
+                  <th className="sticky">Call vs shove</th>
+                  {visiblePlayers.map((player) => (
+                    <th key={`head-${player.id}`}>{player.name}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {visiblePlayers.map((rowPlayer, rowIndex) => (
+                  <tr key={`row-${rowPlayer.id}`}>
+                    <th className="sticky">{rowPlayer.name}</th>
+                    {visiblePlayers.map((columnPlayer, columnIndex) => {
+                      const cell = result?.bubbleMatrix[rowIndex]?.[columnIndex];
+                      const toneClass = getCellTone(cell?.bubbleFactor ?? null);
+
+                      return (
+                        <td
+                          key={`cell-${rowPlayer.id}-${columnPlayer.id}`}
+                          className={`matrix-cell ${toneClass}`}
+                        >
+                          {rowIndex === columnIndex || !cell ? (
+                            <span className="cell-empty">-</span>
+                          ) : (
+                            <button
+                              type="button"
+                              className="matrix-button"
+                              aria-label={`${rowPlayer.name} calling versus ${columnPlayer.name} shove`}
+                              onClick={() =>
+                                setActiveCell({
+                                  rowIndex,
+                                  columnIndex,
+                                })
+                              }
+                            >
+                              <span className="cell-top">
+                                {cell.riskPremium === null ? '-' : `${cell.riskPremium > 0 ? '+' : ''}${cell.riskPremium}%`}
+                              </span>
+                              <span className="cell-bottom">
+                                {cell.bubbleFactor === null ? '-' : cell.bubbleFactor.toFixed(2)}
+                              </span>
+                            </button>
+                          )}
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        {activeCellData ? (
+          <div
+            className="sheet-backdrop"
+            role="presentation"
+            onClick={() => setActiveCell(null)}
+          >
+            <section
+              className="detail-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Bubble factor detail"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="sheet-handle" />
+              <div className="panel-head">
+                <div>
+                  <p className="eyebrow">Cell detail</p>
+                  <h2>{activeCellData.rowPlayer.name} vs {activeCellData.columnPlayer.name}</h2>
+                  <p className="helper-copy">
+                    Row player is calling. Column player is shoving.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="icon-button"
+                  aria-label="Close detail"
+                  onClick={() => setActiveCell(null)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="detail-grid">
+                <article className="detail-card">
+                  <span>Risk Premium</span>
+                  <strong>
+                    {activeCellData.cell.riskPremium === null
+                      ? 'N/A'
+                      : `${activeCellData.cell.riskPremium > 0 ? '+' : ''}${activeCellData.cell.riskPremium}%`}
+                  </strong>
+                </article>
+                <article className="detail-card">
+                  <span>Bubble Factor</span>
+                  <strong>
+                    {activeCellData.cell.bubbleFactor === null
+                      ? 'N/A'
+                      : activeCellData.cell.bubbleFactor.toFixed(2)}
+                  </strong>
+                </article>
+                <article className="detail-card">
+                  <span>Required equity</span>
+                  <strong>
+                    {activeCellData.cell.requiredEquity === null
+                      ? 'N/A'
+                      : `${activeCellData.cell.requiredEquity}%`}
+                  </strong>
+                </article>
+              </div>
+              <p className="sheet-note">
+                Study mode assumption: symmetric all-in, no blinds, no antes, no side pots, 50%
+                chip-EV baseline for Risk Premium.
+              </p>
+            </section>
+          </div>
+        ) : null}
+      </main>
+    </div>
+  );
+}
+
+export default App;
