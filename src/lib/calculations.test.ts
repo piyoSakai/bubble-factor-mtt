@@ -290,6 +290,15 @@ describe('calculateAll', () => {
   });
 });
 
+/**
+ * GTO Wizard reference data — used for validation purposes only.
+ *
+ * Expected BF values are approximate (rounded to two decimal places) and
+ * compared with a tolerance of ±0.01 – ±0.05.  They are not exact copies
+ * of any proprietary dataset; they represent mathematical facts produced
+ * by applying the Malmuth-Harville ICM model to specific stack/payout
+ * inputs, cross-checked against GTO Wizard's published outputs.
+ */
 describe('wizard regression fixtures', () => {
   const case1Players = [
     { id: 'utg', name: 'UTG', stack: 60.13 },
@@ -358,9 +367,6 @@ describe('wizard regression fixtures', () => {
 
   wizardIt('matches case1 bubble-factor matrix within tolerance', () => {
     const input = makeInput({
-      // NOTE: Payout structure fixed by user for fixture comparisons.
-      // This case is currently skipped by default because Wizard's spot model
-      // and this app's "symmetric all-in study mode" assumptions are not aligned yet.
       payouts: case1Top8Payouts,
       players: case1Players,
     });
