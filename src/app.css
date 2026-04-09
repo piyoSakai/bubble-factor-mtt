@@ -292,6 +292,14 @@ button:focus-visible {
   border-radius: 16px;
 }
 
+.matrix-wrap.fit {
+  overflow: hidden;
+}
+
+.matrix-fit-stage {
+  width: max-content;
+}
+
 .result-table,
 .matrix {
   width: 100%;
@@ -325,6 +333,10 @@ button:focus-visible {
   left: 0;
   z-index: 2;
   background: rgba(13, 20, 39, 0.98);
+}
+
+.matrix-wrap.fit .matrix .sticky {
+  position: static;
 }
 
 .matrix thead .sticky {
@@ -414,6 +426,13 @@ button:focus-visible {
   gap: 6px;
   color: #b9c3dc;
   font-size: 0.84rem;
+}
+
+.matrix-tools {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .legend-swatch {

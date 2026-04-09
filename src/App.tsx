@@ -170,7 +170,12 @@ function App() {
   const [savedScenarios, setSavedScenarios] = useState<SavedScenario[]>(() => readSavedScenarios());
   const [saveName, setSaveName] = useState('Final table sample');
   const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
+  const [matrixFitMode, setMatrixFitMode] = useState(false);
+  const [matrixScale, setMatrixScale] = useState(1);
+  const [matrixScaledHeight, setMatrixScaledHeight] = useState<number | null>(null);
   const workerRef = useRef<Worker | null>(null);
+  const matrixViewportRef = useRef<HTMLDivElement | null>(null);
+  const matrixTableRef = useRef<HTMLTableElement | null>(null);
   const requestKey = useMemo(() => JSON.stringify(input), [input]);
   const isCalculating = inFlightRequestKey !== null;
   const needsRecalculation = completedRequestKey !== requestKey;
@@ -210,6 +215,45 @@ function App() {
   useEffect(() => {
     window.localStorage.setItem(SAVES_KEY, JSON.stringify(savedScenarios));
   }, [savedScenarios]);
+
+  useEffect(() => {
+    if (!matrixFitMode) {
+      return;
+    }
+
+    const viewport = matrixViewportRef.current;
+    const table = matrixTableRef.current;
+    if (!viewport || !table) {
+      return;
+    }
+
+    const updateScale = () => {
+      const availableWidth = viewport.clientWidth;
+      const naturalWidth = table.scrollWidth;
+      const naturalHeight = table.scrollHeight;
+      if (availableWidth <= 0 || naturalWidth <= 0) {
+        return;
+      }
+
+      const nextScale = Math.min(1, availableWidth / naturalWidth);
+      const nextHeight = naturalHeight * nextScale;
+
+      setMatrixScale((current) => (Math.abs(current - nextScale) > 0.001 ? nextScale : current));
+      setMatrixScaledHeight((current) =>
+        current === null || Math.abs(current - nextHeight) > 1 ? nextHeight : current,
+      );
+    };
+
+    const frameId = window.requestAnimationFrame(updateScale);
+
+    const resizeObserver = new ResizeObserver(updateScale);
+    resizeObserver.observe(viewport);
+    resizeObserver.observe(table);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      resizeObserver.disconnect();
+    };
+  }, [matrixFitMode, result, input.players, input.stackUnit]);
 
   const visiblePlayers = useMemo(
     () => input.players.filter((player) => player.stack > 0),
@@ -735,22 +779,48 @@ function App() {
           <div className="panel-head">
             <div>
               <h2>Bubble Factor Matrix</h2>
-              <p className="helper-copy">Top = Risk Premium. Bottom = Bubble Factor.</p>
+              <p className="helper-copy">
+                Top = Risk Premium. Bottom = Bubble Factor. Use &quot;Fit to screen&quot; for sharing screenshots.
+              </p>
             </div>
-            <div className="legend">
-              <span className="legend-item">
-                <i className="legend-swatch cool" />
-                Low
-              </span>
-              <span className="legend-item">
-                <i className="legend-swatch hot" />
-                High
-              </span>
+            <div className="matrix-tools">
+              <button
+                type="button"
+                className="ghost-button"
+                onClick={() => setMatrixFitMode((current) => !current)}
+              >
+                {matrixFitMode ? 'Scrollable view' : 'Fit to screen'}
+              </button>
+              <div className="legend">
+                <span className="legend-item">
+                  <i className="legend-swatch cool" />
+                  Low
+                </span>
+                <span className="legend-item">
+                  <i className="legend-swatch hot" />
+                  High
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="matrix-wrap">
-            <table className="matrix">
+          <div className={`matrix-wrap ${matrixFitMode ? 'fit' : ''}`} ref={matrixViewportRef}>
+            <div
+              className="matrix-fit-stage"
+              style={matrixFitMode && matrixScaledHeight !== null ? { height: `${matrixScaledHeight}px` } : undefined}
+            >
+              <table
+                ref={matrixTableRef}
+                className="matrix"
+                style={
+                  matrixFitMode
+                    ? {
+                        transform: `scale(${matrixScale})`,
+                        transformOrigin: 'top left',
+                      }
+                    : undefined
+                }
+              >
               <thead>
                 <tr>
                   <th className="sticky">Call vs shove</th>
@@ -832,7 +902,8 @@ function App() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </div>
           </div>
         </section>
 
