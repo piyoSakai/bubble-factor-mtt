@@ -836,6 +836,7 @@ function App() {
                         </span>
                       </span>
                       <span className="matrix-header-avg">
+                        <span className="tag tag-shove">S</span>
                         BF {formatBubbleFactor(matrixAverages?.shove[columnIndex]?.bubbleFactor ?? null)} · {formatRiskPremium(matrixAverages?.shove[columnIndex]?.riskPremium ?? null)}
                       </span>
                     </th>
@@ -856,6 +857,7 @@ function App() {
                         </span>
                       </span>
                       <span className="matrix-header-avg">
+                        <span className="tag tag-call">C</span>
                         BF {formatBubbleFactor(matrixAverages?.call[rowIndex]?.bubbleFactor ?? null)} · {formatRiskPremium(matrixAverages?.call[rowIndex]?.riskPremium ?? null)}
                       </span>
                     </th>

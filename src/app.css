@@ -441,6 +441,27 @@ button:focus-visible {
   font-variant-numeric: tabular-nums;
 }
 
+.tag {
+  display: inline-block;
+  padding: 1px 4px;
+  border-radius: 4px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  vertical-align: 1px;
+  margin-right: 2px;
+}
+
+.tag-call {
+  background: rgba(96, 116, 255, 0.25);
+  color: #8ba5ff;
+}
+
+.tag-shove {
+  background: rgba(240, 120, 58, 0.25);
+  color: #f0a060;
+}
+
 .legend-item {
   display: inline-flex;
   align-items: center;
