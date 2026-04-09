@@ -24,10 +24,12 @@ body,
 #root {
   min-height: 100%;
   margin: 0;
+  width: 100%;
 }
 
 body {
   min-width: 320px;
+  overflow-x: hidden;
 }
 
 button,
