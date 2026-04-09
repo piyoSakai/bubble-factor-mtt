@@ -67,7 +67,7 @@ Vercel only serves the static files. All calculation and data storage happen cli
 ## Local development
 
 ```bash
-git clone <repo-url>
+git clone https://github.com/piyoSakai/bubble-factor-mtt.git
 cd bubble-factor-mtt
 npm install
 npm run dev
