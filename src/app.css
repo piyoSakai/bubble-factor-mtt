@@ -1,7 +1,6 @@
 .app-shell {
   min-height: 100vh;
   width: 100%;
-  overflow-x: hidden;
   padding:
     max(16px, env(safe-area-inset-top))
     max(16px, env(safe-area-inset-right))
@@ -152,8 +151,13 @@ button:disabled {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
+  flex-wrap: wrap;
   gap: 12px;
   margin-bottom: 16px;
+}
+
+.panel-head > * {
+  min-width: 0;
 }
 
 .list-grid {
@@ -163,51 +167,12 @@ button:disabled {
 
 .input-row {
   display: grid;
-  /* narrow: name full-width on row1, stack full-width on row2, remove button spans both */
-  grid-template-columns: minmax(0, 1fr) 44px;
-  grid-template-rows: auto auto;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 40px;
   gap: 8px;
-}
-
-.input-row > label:first-child {
-  grid-column: 1;
-  grid-row: 1;
-}
-
-.input-row > label:nth-child(2) {
-  grid-column: 1;
-  grid-row: 2;
-}
-
-.input-row > button {
-  grid-column: 2;
-  grid-row: 1 / 3;
-  align-self: center;
-}
-
-@media (min-width: 480px) {
-  .input-row {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px;
-    grid-template-rows: auto;
-    gap: 10px;
-  }
-
-  .input-row > label:first-child,
-  .input-row > label:nth-child(2) {
-    grid-column: unset;
-    grid-row: unset;
-  }
-
-  .input-row > button {
-    grid-column: unset;
-    grid-row: unset;
-    align-self: unset;
-  }
 }
 
 .input-row.compact {
   grid-template-columns: minmax(0, 1fr) 44px;
-  grid-template-rows: auto;
 }
 
 .input-row.drill-row {
@@ -242,7 +207,8 @@ button:focus-visible {
 }
 
 .icon-button {
-  width: 44px;
+  width: 100%;
+  min-width: 40px;
 }
 
 .status-chip {
