@@ -254,7 +254,62 @@ code paths that could exfiltrate data.
 
 ---
 
-## 9. References
+## 9. BF Drill Plan (next feature)
+
+A training mode where users estimate BF values without seeing the matrix, then compare against
+exact calculated outputs. All scenarios use exact ICM — no approximation, no M3.
+
+### 9.1 Drill scope: Exact FT only
+
+Every preset uses the standard FT ICM path. This guarantees that "correct answers" are
+reproducible and verifiable against GTO Wizard regression data. Mid-field approximation
+scenarios are explicitly out of scope until a reliable approximation model is developed (see
+`docs/M3_APPROX_POSTMORTEM.md`).
+
+### 9.2 Prompt format
+
+- Show the caller player (one row) with all BF cells hidden.
+- Player stacks are visible; opponent names and stacks are visible.
+- User enters BF guesses for every opponent in the row.
+- Submit reveals exact BF values with per-cell error and round score.
+
+### 9.3 Payout presets (8 total)
+
+| ID | Description | Players | Paid spots |
+|----|-------------|---------|------------|
+| **A1** | 1000-player FT — 8 left | 8 | 8 (top 150 of 1000 scaled) |
+| **A1'** | 1000-player FT — 5 left | 5 | 5 |
+| **A1''** | 1000-player FT — 3 left | 3 | 3 |
+| **A2** | 200-player FT — 8 left | 8 | 8 (top 30 of 200 scaled) |
+| **B** | Satellite — 8 players, top 3 ITM | 8 | 3 (equal value) |
+| **B'** | Satellite — 8 players, top 6 ITM | 8 | 6 (equal value) |
+| **C** | Winner-take-most — steep gradient | 8 | 8 |
+| **E** | Small-field FT — 8 players, top 6 ITM | 8 | 6 (descending) |
+
+Notes on presets:
+- A1 / A1' / A1'' use the same 1000-player Wizard payout ladder, truncated to N spots.
+- B / B' use equal-value payouts; the satellite dynamics make BF estimation non-trivial near
+  the bubble.
+- D (deep run / near-bubble with M3 approximation) was considered and dropped.
+
+### 9.4 Scoring model
+
+To avoid bias from large-BF spots, scoring uses relative error:
+
+\[
+\text{relErr} = \frac{|\text{guess} - \text{actual}|}{\max(\text{actual},\, \varepsilon)}
+\]
+
+\[
+\text{cellScore} = 100 \times \max(0,\, 1 - \text{relErr})
+\]
+
+Round score is the mean of cell scores. Streak logic is threshold-based (all cells within a
+configurable relative-error bound, e.g. 15 %).
+
+---
+
+## 10. References
 
 - [ICMIZER Blog — Bubble Factor](https://www.icmizer.com/en/blog/bubble-factor-advanced-fgs-better-limps-and-more/)
 - [GTO Wizard — What is the Bubble Factor in poker tournaments?](https://blog.gtowizard.com/what-is-the-bubble-factor-in-poker-tournaments/)
