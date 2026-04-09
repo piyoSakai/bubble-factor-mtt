@@ -1,6 +1,6 @@
 .app-shell {
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
   padding:
     max(16px, env(safe-area-inset-top))
     max(12px, env(safe-area-inset-right))
@@ -35,6 +35,7 @@
 .hero,
 .panel {
   padding: 14px;
+  min-width: 0;
 }
 
 .hero {
@@ -111,6 +112,7 @@ button:disabled {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+  min-width: 0;
 }
 
 .stat-card {
