@@ -288,35 +288,6 @@ describe('calculateAll', () => {
     const expectedBf = loseDelta / winDelta;
     expect(result.bubbleMatrix[0][1].bubbleFactor).toBeCloseTo(expectedBf, 2);
   });
-
-  it('supports M3 approximate mode and keeps output aligned to visible players', () => {
-    const input = makeInput({
-      players: [
-        { id: 'p1', name: 'P1', stack: 60 },
-        { id: 'p2', name: 'P2', stack: 35 },
-        { id: 'p3', name: 'P3', stack: 25 },
-        { id: 'p4', name: 'P4', stack: 10 },
-      ],
-      payouts: [1000, 700, 500, 380, 300, 240, 190, 150, 120, 90, 70],
-      approximation: {
-        enabled: true,
-        fieldSize: 1000,
-        phase: 'phase_near_bubble',
-        payoutPreset: 'wizard_1000',
-      },
-    });
-    const result = calculateAll(input);
-
-    expect(result.meta?.mode).toBe('mtt-approx');
-    expect(result.meta?.virtualPlayers).toBeGreaterThan(0);
-    expect(result.warnings).toContain(
-      'Approx mode (M3 beta): field outside your table is compressed into virtual players. Values are estimates.',
-    );
-    expect(result.equities).toHaveLength(4);
-    expect(result.chipChop).toHaveLength(4);
-    expect(result.bubbleMatrix).toHaveLength(4);
-    expect(result.bubbleMatrix[0]).toHaveLength(4);
-  });
 });
 
 describe('wizard regression fixtures', () => {

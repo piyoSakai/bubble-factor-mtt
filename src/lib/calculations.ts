@@ -1,9 +1,4 @@
-import type {
-  ApproximationPhase,
-  CalculationInput,
-  CalculationResult,
-  MatrixCell,
-} from '../types';
+import type { CalculationInput, CalculationResult, MatrixCell } from '../types';
 
 const EPSILON = 1e-9;
 
@@ -22,75 +17,6 @@ const normalizePayouts = (payouts: number[], playerCount: number): number[] => {
   }
 
   return [...trimmed, ...Array.from({ length: playerCount - trimmed.length }, () => 0)];
-};
-
-type ApproximationPhaseProfile = {
-  virtualPlayerCount: number;
-  fieldPressure: number;
-  weights: number[];
-};
-
-const APPROXIMATION_PHASES: Record<ApproximationPhase, ApproximationPhaseProfile> = {
-  phase_50: {
-    virtualPlayerCount: 3,
-    fieldPressure: 0.45,
-    weights: [0.34, 0.33, 0.33],
-  },
-  phase_25: {
-    virtualPlayerCount: 3,
-    fieldPressure: 0.65,
-    weights: [0.38, 0.34, 0.28],
-  },
-  phase_18: {
-    virtualPlayerCount: 3,
-    fieldPressure: 0.8,
-    weights: [0.43, 0.34, 0.23],
-  },
-  phase_16: {
-    virtualPlayerCount: 3,
-    fieldPressure: 0.9,
-    weights: [0.46, 0.34, 0.2],
-  },
-  phase_near_bubble: {
-    virtualPlayerCount: 3,
-    fieldPressure: 1.1,
-    weights: [0.52, 0.32, 0.16],
-  },
-  phase_10: {
-    virtualPlayerCount: 2,
-    fieldPressure: 1.25,
-    weights: [0.62, 0.38],
-  },
-  phase_5: {
-    virtualPlayerCount: 2,
-    fieldPressure: 1.35,
-    weights: [0.68, 0.32],
-  },
-};
-
-const buildApproximateStacks = (stacks: number[], phase: ApproximationPhase): number[] => {
-  const profile = APPROXIMATION_PHASES[phase];
-  if (!profile || stacks.length === 0) {
-    return stacks;
-  }
-
-  const tableChipTotal = sum(stacks);
-  if (tableChipTotal <= EPSILON) {
-    return stacks;
-  }
-
-  const virtualTotal = tableChipTotal * profile.fieldPressure;
-  const weightTotal = sum(profile.weights);
-  if (weightTotal <= EPSILON) {
-    return stacks;
-  }
-
-  const virtualStacks = profile.weights
-    .slice(0, profile.virtualPlayerCount)
-    .map((weight) => (virtualTotal * weight) / weightTotal)
-    .map((value) => (value <= EPSILON ? EPSILON : value));
-
-  return [...stacks, ...virtualStacks];
 };
 
 const memoizedIcm = (stacks: number[], payouts: number[]): number[] => {
@@ -295,11 +221,7 @@ export const calculateAll = (input: CalculationInput): CalculationResult => {
   const warnings = validateInput(input);
   const players = input.players.filter((player) => player.stack > 0);
   const stacks = players.map((player) => player.stack);
-  const approximationEnabled = Boolean(input.approximation?.enabled);
-  const phase = input.approximation?.phase ?? 'phase_near_bubble';
-  const modeledStacks = approximationEnabled ? buildApproximateStacks(stacks, phase) : stacks;
-  const virtualPlayers = Math.max(modeledStacks.length - stacks.length, 0);
-  const payouts = normalizePayouts(input.payouts, modeledStacks.length);
+  const payouts = normalizePayouts(input.payouts, players.length);
 
   if (players.length === 0 || payouts.length === 0) {
     return {
@@ -307,29 +229,13 @@ export const calculateAll = (input: CalculationInput): CalculationResult => {
       chipChop: [],
       bubbleMatrix: [],
       warnings,
-      meta: {
-        mode: approximationEnabled ? 'mtt-approx' : 'exact',
-        virtualPlayers,
-        phase: approximationEnabled ? phase : undefined,
-        fieldSize: approximationEnabled ? input.approximation?.fieldSize : undefined,
-        payoutPreset: approximationEnabled ? input.approximation?.payoutPreset : undefined,
-      },
     };
   }
 
-  if (approximationEnabled) {
-    warnings.push(
-      'Approx mode (M3 beta): field outside your table is compressed into virtual players. Values are estimates.',
-    );
-  }
-
-  const fullEquities = memoizedIcm(modeledStacks, payouts).map((value) => round(value, 6));
-  const fullChipChop = calculateChipChop(modeledStacks, payouts).map((value) => round(value, 6));
-  const fullBubbleMatrix = calculateBubbleMatrix(modeledStacks, payouts, fullEquities);
-  const equities = fullEquities.slice(0, stacks.length);
-  const chipChop = fullChipChop.slice(0, stacks.length);
-  const bubbleMatrix = fullBubbleMatrix.slice(0, stacks.length).map((row) =>
-    row.slice(0, stacks.length).map((cell) => ({
+  const equities = memoizedIcm(stacks, payouts).map((value) => round(value, 6));
+  const chipChop = calculateChipChop(stacks, payouts).map((value) => round(value, 6));
+  const bubbleMatrix = calculateBubbleMatrix(stacks, payouts, equities).map((row) =>
+    row.map((cell) => ({
       bubbleFactor: cell.bubbleFactor === null ? null : round(cell.bubbleFactor, 2),
       riskPremium: cell.riskPremium === null ? null : round(cell.riskPremium, 1),
       requiredEquity: cell.requiredEquity === null ? null : round(cell.requiredEquity * 100, 1),
@@ -341,12 +247,5 @@ export const calculateAll = (input: CalculationInput): CalculationResult => {
     chipChop,
     bubbleMatrix,
     warnings,
-    meta: {
-      mode: approximationEnabled ? 'mtt-approx' : 'exact',
-      virtualPlayers,
-      phase: approximationEnabled ? phase : undefined,
-      fieldSize: approximationEnabled ? input.approximation?.fieldSize : undefined,
-      payoutPreset: approximationEnabled ? input.approximation?.payoutPreset : undefined,
-    },
   };
 };
