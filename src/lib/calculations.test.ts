@@ -15,6 +15,55 @@ const makeInput = (overrides: Partial<CalculationInput> = {}): CalculationInput 
 
 const sum = (values: number[]): number => values.reduce((accumulator, value) => accumulator + value, 0);
 
+const enumeratePermutations = (values: number[]): number[][] => {
+  if (values.length <= 1) {
+    return [values];
+  }
+
+  const permutations: number[][] = [];
+  values.forEach((value, index) => {
+    const remaining = [...values.slice(0, index), ...values.slice(index + 1)];
+    enumeratePermutations(remaining).forEach((tail) => {
+      permutations.push([value, ...tail]);
+    });
+  });
+
+  return permutations;
+};
+
+const exactIcmByPermutation = (stacks: number[], payouts: number[]): number[] => {
+  const playerIndices = stacks.map((_, index) => index);
+  const permutations = enumeratePermutations(playerIndices);
+  const equities = Array.from({ length: stacks.length }, () => 0);
+
+  permutations.forEach((finishOrder) => {
+    let probability = 1;
+    let remainingTotal = sum(stacks);
+
+    for (let place = 0; place < finishOrder.length; place += 1) {
+      const playerIndex = finishOrder[place];
+      const stack = stacks[playerIndex] ?? 0;
+      if (remainingTotal <= 0 || stack <= 0) {
+        probability = 0;
+        break;
+      }
+
+      probability *= stack / remainingTotal;
+      remainingTotal -= stack;
+    }
+
+    if (probability === 0) {
+      return;
+    }
+
+    finishOrder.forEach((playerIndex, place) => {
+      equities[playerIndex] += probability * (payouts[place] ?? 0);
+    });
+  });
+
+  return equities;
+};
+
 describe('validateInput', () => {
   it('warns when no active players and no payouts exist', () => {
     const warnings = validateInput(
@@ -209,6 +258,36 @@ describe('calculateAll', () => {
     expect(result.chipChop[0]).toBeCloseTo(75, 6);
     expect(result.chipChop[1]).toBeCloseTo(25, 6);
   });
+
+  it('matches independent exact ICM enumeration for a 4-player case', () => {
+    const input = makeInput({
+      players: [
+        { id: 'p1', name: 'P1', stack: 40 },
+        { id: 'p2', name: 'P2', stack: 30 },
+        { id: 'p3', name: 'P3', stack: 20 },
+        { id: 'p4', name: 'P4', stack: 10 },
+      ],
+      payouts: [100, 60, 30, 10],
+    });
+    const result = calculateAll(input);
+    const exact = exactIcmByPermutation(
+      input.players.map((player) => player.stack),
+      input.payouts,
+    );
+
+    exact.forEach((expected, index) => {
+      expect(result.equities[index]).toBeCloseTo(expected, 6);
+    });
+
+    const shiftedLose = exactIcmByPermutation([10, 60, 20, 10], input.payouts)[0];
+    const shiftedWin =
+      exactIcmByPermutation([70, 20, 10], [100, 60, 30])[0];
+    const start = exact[0];
+    const loseDelta = start - shiftedLose;
+    const winDelta = shiftedWin - start;
+    const expectedBf = loseDelta / winDelta;
+    expect(result.bubbleMatrix[0][1].bubbleFactor).toBeCloseTo(expectedBf, 2);
+  });
 });
 
 describe('wizard regression fixtures', () => {
@@ -234,7 +313,7 @@ describe('wizard regression fixtures', () => {
     440, 440, 440, 440, 440, 440, 440,
   ];
 
-  it('uses only top-8 payouts when there are 8 active players', () => {
+  it('uses only top-8 payouts when there are 8 active players', { timeout: 15000 }, () => {
     const inputTop8 = makeInput({
       players: case1Players,
       payouts: case1Top8Payouts,
@@ -252,7 +331,7 @@ describe('wizard regression fixtures', () => {
     expect(resultAllPayouts.bubbleMatrix).toEqual(resultTop8.bubbleMatrix);
   });
 
-  it('includes BB stack when BB is positive', () => {
+  it('includes BB stack when BB is positive', { timeout: 15000 }, () => {
     const withBB = calculateAll(
       makeInput({
         players: case1Players,

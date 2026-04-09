@@ -108,6 +108,42 @@ const shiftStacksForAllIn = (
   return shifted.map((value) => (Math.abs(value) <= EPSILON ? 0 : value));
 };
 
+const calculateDecisionMakerEquityAfterAllIn = (
+  stacks: number[],
+  payouts: number[],
+  decisionMakerIndex: number,
+  opponentIndex: number,
+  decisionMakerWins: boolean,
+): number => {
+  const shifted = shiftStacksForAllIn(
+    stacks,
+    decisionMakerIndex,
+    opponentIndex,
+    decisionMakerWins,
+  );
+
+  const loserIndex = decisionMakerWins ? opponentIndex : decisionMakerIndex;
+  const loserStack = shifted[loserIndex] ?? 0;
+
+  // In pairwise all-in modeling, one player can become exactly 0 chips.
+  // If payouts are defined for all remaining players, that busted player
+  // should lock the lowest remaining payout immediately.
+  if (loserStack <= EPSILON && payouts.length >= shifted.length) {
+    if (loserIndex === decisionMakerIndex) {
+      return payouts[shifted.length - 1] ?? 0;
+    }
+
+    const activeStacks = shifted.filter((_, index) => index !== loserIndex);
+    const activePayouts = payouts.slice(0, activeStacks.length);
+    const activeEquities = memoizedIcm(activeStacks, activePayouts);
+    const activeDecisionMakerIndex =
+      decisionMakerIndex < loserIndex ? decisionMakerIndex : decisionMakerIndex - 1;
+    return activeEquities[activeDecisionMakerIndex] ?? 0;
+  }
+
+  return memoizedIcm(shifted, payouts)[decisionMakerIndex] ?? 0;
+};
+
 const calculateBubbleMatrix = (stacks: number[], payouts: number[], equities: number[]): MatrixCell[][] =>
   stacks.map((_, decisionMakerIndex) =>
     stacks.map((__, opponentIndex) => {
@@ -120,17 +156,23 @@ const calculateBubbleMatrix = (stacks: number[], payouts: number[], equities: nu
       }
 
       const start = equities[decisionMakerIndex] ?? 0;
-      const loseEquities = memoizedIcm(
-        shiftStacksForAllIn(stacks, decisionMakerIndex, opponentIndex, false),
+      const loseEquity = calculateDecisionMakerEquityAfterAllIn(
+        stacks,
         payouts,
+        decisionMakerIndex,
+        opponentIndex,
+        false,
       );
-      const winEquities = memoizedIcm(
-        shiftStacksForAllIn(stacks, decisionMakerIndex, opponentIndex, true),
+      const winEquity = calculateDecisionMakerEquityAfterAllIn(
+        stacks,
         payouts,
+        decisionMakerIndex,
+        opponentIndex,
+        true,
       );
 
-      const loseDelta = start - (loseEquities[decisionMakerIndex] ?? 0);
-      const winDelta = (winEquities[decisionMakerIndex] ?? 0) - start;
+      const loseDelta = start - loseEquity;
+      const winDelta = winEquity - start;
 
       if (winDelta <= EPSILON) {
         return {
