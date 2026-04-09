@@ -141,12 +141,14 @@ function App() {
   const [input, setInput] = useState<CalculationInput>(() => readInitialState());
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [completedRequestKey, setCompletedRequestKey] = useState('');
+  const [inFlightRequestKey, setInFlightRequestKey] = useState<string | null>(null);
   const [savedScenarios, setSavedScenarios] = useState<SavedScenario[]>(() => readSavedScenarios());
   const [saveName, setSaveName] = useState('Final table sample');
   const [activeCell, setActiveCell] = useState<ActiveCell | null>(null);
   const workerRef = useRef<Worker | null>(null);
   const requestKey = useMemo(() => JSON.stringify(input), [input]);
-  const isCalculating = completedRequestKey !== requestKey;
+  const isCalculating = inFlightRequestKey !== null;
+  const needsRecalculation = completedRequestKey !== requestKey;
 
   useEffect(() => {
     const worker = new Worker(new URL('./workers/calculatorWorker.ts', import.meta.url), {
@@ -160,6 +162,7 @@ function App() {
 
       setResult(event.data.payload);
       setCompletedRequestKey(event.data.requestKey);
+      setInFlightRequestKey(null);
     };
 
     workerRef.current = worker;
@@ -171,20 +174,7 @@ function App() {
 
   useEffect(() => {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(input));
-    if (!workerRef.current) {
-      return;
-    }
-
-    const timeout = window.setTimeout(() => {
-      workerRef.current?.postMessage({
-        type: 'calculate',
-        requestKey,
-        payload: input,
-      });
-    }, 180);
-
-    return () => window.clearTimeout(timeout);
-  }, [input, requestKey]);
+  }, [input]);
 
   useEffect(() => {
     window.localStorage.setItem(SAVES_KEY, JSON.stringify(savedScenarios));
@@ -318,6 +308,20 @@ function App() {
     link.download = `${safeName || 'bubble-factor-scenario'}.json`;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const runCalculation = () => {
+    if (!workerRef.current || isCalculating) {
+      return;
+    }
+
+    setInFlightRequestKey(requestKey);
+    setActiveCell(null);
+    workerRef.current.postMessage({
+      type: 'calculate',
+      requestKey,
+      payload: input,
+    });
   };
 
   const activeCellData = useMemo(() => {
@@ -525,11 +529,21 @@ function App() {
           <div className="panel-head">
             <div>
               <h2>Results</h2>
-              <p className="helper-copy">Risk Premium uses a fixed 50% chip-EV baseline.</p>
+              <p className="helper-copy">Manual mode: press Recalculate after edits.</p>
             </div>
-            <span className={isCalculating ? 'status-chip live' : 'status-chip'}>
-              {isCalculating ? 'Calculating' : 'Ready'}
-            </span>
+            <div className="action-row">
+              <button
+                type="button"
+                className="primary-button"
+                onClick={runCalculation}
+                disabled={isCalculating || !needsRecalculation}
+              >
+                {isCalculating ? 'Calculating…' : 'Recalculate'}
+              </button>
+              <span className={isCalculating ? 'status-chip live' : 'status-chip'}>
+                {isCalculating ? 'Calculating' : needsRecalculation ? 'Needs recalc' : 'Ready'}
+              </span>
+            </div>
           </div>
 
           {result?.warnings.length ? (
@@ -560,8 +574,8 @@ function App() {
                       )}
                     </td>
                     <td>{numberFormatter.format(player.stack)}</td>
-                    <td>{valueFormatter.format(result?.equities[index] ?? 0)}</td>
-                    <td>{valueFormatter.format(result?.chipChop[index] ?? 0)}</td>
+                    <td>{result ? valueFormatter.format(result.equities[index] ?? 0) : '-'}</td>
+                    <td>{result ? valueFormatter.format(result.chipChop[index] ?? 0) : '-'}</td>
                   </tr>
                 ))}
               </tbody>
