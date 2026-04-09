@@ -31,7 +31,7 @@ describe('validateInput', () => {
     expect(warnings).toContain('Add at least one payout.');
   });
 
-  it('warns for negative stack and negative payout', () => {
+  it('warns for negative stack', () => {
     const warnings = validateInput(
       makeInput({
         players: [
@@ -42,8 +42,17 @@ describe('validateInput', () => {
       }),
     );
 
-    expect(warnings).toContain('Payouts must be zero or positive.');
     expect(warnings).toContain('Stacks must be zero or positive.');
+  });
+
+  it('allows negative payouts without validation warnings', () => {
+    const warnings = validateInput(
+      makeInput({
+        payouts: [100, -20, -30],
+      }),
+    );
+
+    expect(warnings).not.toContain('Payouts must be zero or positive.');
   });
 
   it('emits a warning when player count is greater than 10', () => {
@@ -171,6 +180,21 @@ describe('calculateAll', () => {
     expect(sum(result.chipChop)).toBeCloseTo(100, 4);
   });
 
+  it('keeps negative payouts in calculation instead of filtering them out', () => {
+    const result = calculateAll(
+      makeInput({
+        players: [
+          { id: 'p1', name: 'P1', stack: 60 },
+          { id: 'p2', name: 'P2', stack: 40 },
+        ],
+        payouts: [100, -20],
+      }),
+    );
+
+    expect(sum(result.equities)).toBeCloseTo(80, 4);
+    expect(sum(result.chipChop)).toBeCloseTo(80, 4);
+  });
+
   it('keeps chip chop proportional in a 2-player winner-take-all setup', () => {
     const result = calculateAll(
       makeInput({
@@ -184,5 +208,65 @@ describe('calculateAll', () => {
 
     expect(result.chipChop[0]).toBeCloseTo(75, 6);
     expect(result.chipChop[1]).toBeCloseTo(25, 6);
+  });
+});
+
+describe('wizard regression fixtures', () => {
+  const wizardRegressionEnabled = import.meta.env.VITE_RUN_WIZARD_REGRESSION === '1';
+  const wizardIt = wizardRegressionEnabled ? it : it.skip;
+
+  wizardIt('matches case1 bubble-factor matrix within tolerance', () => {
+    const input = makeInput({
+      // NOTE: Payout structure fixed by user for fixture comparisons.
+      // This case is currently skipped by default because Wizard's spot model
+      // and this app's "symmetric all-in study mode" assumptions are not aligned yet.
+      payouts: [7656, 5668, 4196, 3204, 2456, 1924, 1484, 1140],
+      players: [
+        { id: 'utg', name: 'UTG', stack: 60.13 },
+        { id: 'utg1', name: 'UTG1', stack: 83.13 },
+        { id: 'lj', name: 'LJ', stack: 20.13 },
+        { id: 'hj', name: 'HJ', stack: 71.13 },
+        { id: 'co', name: 'CO', stack: 73.13 },
+        { id: 'btn', name: 'BTN', stack: 29.13 },
+        { id: 'sb', name: 'SB', stack: 36.13 },
+        { id: 'bb', name: 'BB', stack: 27.13 },
+      ],
+    });
+
+    const expectedBubbleFactor: Array<Array<number | null>> = [
+      [null, 2.14, 1.18, 2.09, 2.1, 1.28, 1.39, 1.26],
+      [1.63, null, 1.13, 1.89, 1.95, 1.28, 1.19, 1.19],
+      [1.47, 1.51, null, 1.49, 1.05, 1.37, 1.4, 1.36],
+      [1.79, 2.25, 1.15, null, 2.2, 1.24, 1.33, 1.22],
+      [1.75, 2.26, 1.15, 2.13, null, 1.24, 1.32, 1.22],
+      [1.65, 1.7, 1.28, 1.68, 1.68, null, 1.56, 1.46],
+      [1.76, 1.83, 1.25, 1.72, 1.43, 1.44, null, 1.39],
+      [1.01, 1.67, 1.29, 1.64, 1.65, 1.49, 1.53, null],
+    ];
+
+    const result = calculateAll(input);
+    const tolerance = 0.18;
+
+    expectedBubbleFactor.forEach((row, rowIndex) => {
+      row.forEach((expected, columnIndex) => {
+        const actual = result.bubbleMatrix[rowIndex]?.[columnIndex]?.bubbleFactor ?? null;
+        if (expected === null) {
+          expect(actual).toBeNull();
+          return;
+        }
+
+        expect(
+          actual,
+          `case1 BF mismatch at [${rowIndex},${columnIndex}] expected=${expected} actual=${actual}`,
+        ).not.toBeNull();
+
+        const diff = Math.abs((actual as number) - expected);
+        if (diff > tolerance) {
+          throw new Error(
+            `case1 BF mismatch at [${rowIndex},${columnIndex}] expected=${expected} actual=${actual} diff=${diff.toFixed(3)}`,
+          );
+        }
+      });
+    });
   });
 });

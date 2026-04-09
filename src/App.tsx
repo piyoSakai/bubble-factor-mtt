@@ -142,6 +142,11 @@ const parseNumber = (value: string): number => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const parseNonNegativeNumber = (value: string): number => {
+  const parsed = parseNumber(value);
+  return parsed < 0 ? 0 : parsed;
+};
+
 function App() {
   const [input, setInput] = useState<CalculationInput>(() => readInitialState());
   const [result, setResult] = useState<CalculationResult | null>(null);
@@ -428,9 +433,10 @@ function App() {
                   <span>{input.stackUnit === 'bb' ? 'Stack (BB)' : 'Stack'}</span>
                   <input
                     inputMode="decimal"
+                    min={0}
                     value={player.stack}
                     onChange={(event) =>
-                      updatePlayer(player.id, { stack: parseNumber(event.target.value) })
+                      updatePlayer(player.id, { stack: parseNonNegativeNumber(event.target.value) })
                     }
                   />
                 </label>

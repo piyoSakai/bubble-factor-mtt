@@ -11,7 +11,7 @@ const sum = (values: number[]): number =>
   values.reduce((accumulator, value) => accumulator + value, 0);
 
 const normalizePayouts = (payouts: number[], playerCount: number): number[] => {
-  const trimmed = payouts.filter((value) => value >= 0).slice(0, playerCount);
+  const trimmed = payouts.slice(0, playerCount);
   if (trimmed.length === playerCount) {
     return trimmed;
   }
@@ -162,10 +162,6 @@ export const validateInput = (input: CalculationInput): string[] => {
 
   if (input.payouts.length === 0) {
     warnings.push('Add at least one payout.');
-  }
-
-  if (input.payouts.some((payout) => payout < 0)) {
-    warnings.push('Payouts must be zero or positive.');
   }
 
   if (input.players.some((player) => player.stack < 0)) {
