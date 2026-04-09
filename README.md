@@ -34,6 +34,7 @@ Calculates **Bubble Factor**, **Risk Premium**, **ICM equity**, and **Chip Chop*
 - [Vite](https://vitejs.dev/)
 - Web Worker for calculation isolation
 - ESLint (flat config, TypeScript + React Hooks rules)
+- [Vitest](https://vitest.dev/) for calculation unit tests
 
 ---
 
@@ -73,6 +74,7 @@ Open [http://localhost:5173](http://localhost:5173).
 npm run build    # TypeScript check + Vite production build → dist/
 npm run preview  # Preview the production build locally
 npm run lint     # ESLint
+npm run test     # Vitest (calculation logic)
 ```
 
 ---

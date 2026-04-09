@@ -168,7 +168,7 @@ export const validateInput = (input: CalculationInput): string[] => {
     warnings.push('Payouts must be zero or positive.');
   }
 
-  if (activePlayers.some((player) => player.stack < 0)) {
+  if (input.players.some((player) => player.stack < 0)) {
     warnings.push('Stacks must be zero or positive.');
   }
 
