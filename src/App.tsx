@@ -11,16 +11,106 @@ const createPlayer = (index: number, stack: number): PlayerInput => ({
   stack,
 });
 
-const defaultPlayers: PlayerInput[] = [
-  { id: crypto.randomUUID(), name: 'UTG', stack: 60.13 },
-  { id: crypto.randomUUID(), name: 'UTG1', stack: 83.13 },
-  { id: crypto.randomUUID(), name: 'LJ', stack: 20.13 },
-  { id: crypto.randomUUID(), name: 'HJ', stack: 71.13 },
-  { id: crypto.randomUUID(), name: 'CO', stack: 73.13 },
-  { id: crypto.randomUUID(), name: 'BTN', stack: 29.13 },
-  { id: crypto.randomUUID(), name: 'SB', stack: 36.13 },
-  { id: crypto.randomUUID(), name: 'BB', stack: 27 },
+// ---------------------------------------------------------------------------
+// Preset definitions (9 scenarios — matches BF Drill preset list in DESIGN.md)
+// ---------------------------------------------------------------------------
+
+type PresetDef = {
+  id: string;
+  label: string;
+  stackDefs: { name: string; stack: number }[];
+  payouts: number[];
+};
+
+const STACKS_8P: { name: string; stack: number }[] = [
+  { name: 'UTG', stack: 60 },
+  { name: 'UTG1', stack: 83 },
+  { name: 'LJ', stack: 20 },
+  { name: 'HJ', stack: 71 },
+  { name: 'CO', stack: 73 },
+  { name: 'BTN', stack: 29 },
+  { name: 'SB', stack: 36 },
+  { name: 'BB', stack: 27 },
 ];
+
+const STACKS_5P: { name: string; stack: number }[] = [
+  { name: 'UTG', stack: 80 },
+  { name: 'CO', stack: 55 },
+  { name: 'BTN', stack: 40 },
+  { name: 'SB', stack: 70 },
+  { name: 'BB', stack: 55 },
+];
+
+const STACKS_3P: { name: string; stack: number }[] = [
+  { name: 'BTN', stack: 120 },
+  { name: 'SB', stack: 80 },
+  { name: 'BB', stack: 100 },
+];
+
+const PRESET_DEFS: PresetDef[] = [
+  {
+    id: 'A1',
+    label: 'A1 — 1000-player FT (8 left)',
+    stackDefs: STACKS_8P,
+    payouts: [30380, 21920, 15880, 11520, 8340, 6120, 4480, 3280],
+  },
+  {
+    id: 'A1p',
+    label: "A1\u2019 — 1000-player FT (5 left)",
+    stackDefs: STACKS_5P,
+    payouts: [30380, 21920, 15880, 11520, 8340],
+  },
+  {
+    id: 'A1pp',
+    label: "A1\u2019\u2019 — 1000-player FT (3 left)",
+    stackDefs: STACKS_3P,
+    payouts: [30380, 21920, 15880],
+  },
+  {
+    id: 'A2',
+    label: 'A2 — 200-player FT (8 left)',
+    stackDefs: STACKS_8P,
+    payouts: [7656, 5668, 4196, 3204, 2456, 1924, 1484, 1140],
+  },
+  {
+    id: 'B',
+    label: 'B — Satellite top 3 ITM',
+    stackDefs: STACKS_8P,
+    payouts: [1000, 1000, 1000, 0, 0, 0, 0, 0],
+  },
+  {
+    id: 'Bp',
+    label: "B\u2019 — Satellite top 6 ITM (flat)",
+    stackDefs: STACKS_8P,
+    payouts: [1000, 1000, 1000, 1000, 1000, 1000, 0, 0],
+  },
+  {
+    id: 'Bpp',
+    label: "B\u2019\u2019 — Satellite top 6 ITM (6th = half)",
+    stackDefs: STACKS_8P,
+    payouts: [1000, 1000, 1000, 1000, 1000, 500, 0, 0],
+  },
+  {
+    id: 'C',
+    label: 'C — Winner-take-most',
+    stackDefs: STACKS_8P,
+    payouts: [40000, 8000, 2400, 800, 300, 150, 100, 50],
+  },
+  {
+    id: 'E',
+    label: 'E — Small-field FT (top 6 ITM)',
+    stackDefs: STACKS_8P,
+    payouts: [4500, 3000, 2000, 1300, 900, 800, 0, 0],
+  },
+];
+
+// ---------------------------------------------------------------------------
+
+const defaultPlayers: PlayerInput[] = STACKS_8P.map((def) => ({
+  id: crypto.randomUUID(),
+  name: def.name,
+  stack: def.stack,
+}));
 
 const defaultPayouts = [7656, 5668, 4196, 3204, 2456, 1924, 1484, 1140];
 
@@ -292,8 +382,18 @@ function App() {
     });
   };
 
-  const loadSample = () => {
-    setInput(defaultState);
+  const loadPreset = (presetId: string) => {
+    const preset = PRESET_DEFS.find((p) => p.id === presetId);
+    if (!preset) return;
+    setInput({
+      players: preset.stackDefs.map((def) => ({
+        id: crypto.randomUUID(),
+        name: def.name,
+        stack: def.stack,
+      })),
+      payouts: preset.payouts,
+      stackUnit: 'bb',
+    });
   };
 
   const saveScenario = () => {
@@ -483,9 +583,21 @@ function App() {
           <div className="panel-head">
             <h2>Players</h2>
             <div className="action-row">
-              <button type="button" className="ghost-button" onClick={loadSample}>
-                Sample
-              </button>
+              <select
+                className="preset-select"
+                value=""
+                onChange={(e) => loadPreset(e.target.value)}
+                aria-label="Load preset scenario"
+              >
+                <option value="" disabled>
+                  Preset…
+                </option>
+                {PRESET_DEFS.map((preset) => (
+                  <option key={preset.id} value={preset.id}>
+                    {preset.label}
+                  </option>
+                ))}
+              </select>
               <button type="button" className="primary-button" onClick={addPlayer}>
                 Add
               </button>

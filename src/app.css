@@ -434,6 +434,27 @@ button:focus-visible {
   font-size: 1.32rem;
 }
 
+.preset-select {
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(164, 178, 255, 0.18);
+  background: rgba(255, 255, 255, 0.05);
+  color: #f5f7fb;
+  font-size: inherit;
+  cursor: pointer;
+}
+
+.preset-select:focus-visible {
+  outline: 2px solid #8ba5ff;
+  outline-offset: 2px;
+}
+
+.preset-select option {
+  color: #0f172a;
+  background: #ffffff;
+}
+
 .app-footer {
   margin-top: 48px;
   padding: 24px 16px;
