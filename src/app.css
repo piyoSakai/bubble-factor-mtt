@@ -1,29 +1,25 @@
 .app-shell {
   min-height: 100vh;
-  width: 100%;
+  overflow-x: hidden;
   padding:
     max(16px, env(safe-area-inset-top))
-    max(16px, env(safe-area-inset-right))
+    max(12px, env(safe-area-inset-right))
     max(24px, env(safe-area-inset-bottom))
-    max(16px, env(safe-area-inset-left));
+    max(12px, env(safe-area-inset-left));
 }
 
 .app {
   display: grid;
   gap: 16px;
-  width: 100%;
   max-width: 1180px;
   margin: 0 auto;
-  min-width: 0;
 }
 
 .view-switch {
   display: flex;
   gap: 8px;
-  width: 100%;
   max-width: 1180px;
   margin: 0 auto 12px;
-  min-width: 0;
 }
 
 .hero,
@@ -39,13 +35,6 @@
 .hero,
 .panel {
   padding: 14px;
-}
-
-@media (min-width: 480px) {
-  .hero,
-  .panel {
-    padding: 18px;
-  }
 }
 
 .hero {
@@ -124,15 +113,10 @@ button:disabled {
   gap: 10px;
 }
 
-@media (min-width: 430px) {
-  .summary-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
 .stat-card {
   padding: 14px;
   min-width: 0;
+  overflow: hidden;
 }
 
 .stat-label {
@@ -176,7 +160,7 @@ button:disabled {
 }
 
 .input-row.drill-row {
-  grid-template-columns: minmax(0, 1fr) repeat(3, minmax(74px, auto));
+  grid-template-columns: minmax(0, 1fr) repeat(3, minmax(60px, auto));
   align-items: end;
 }
 
@@ -196,7 +180,6 @@ input {
   border: 1px solid rgba(162, 177, 255, 0.15);
   background: rgba(255, 255, 255, 0.05);
   color: #f5f7fb;
-  /* 16px minimum prevents iOS Safari from auto-zooming on focus */
   font-size: max(1rem, 16px);
 }
 
@@ -207,8 +190,7 @@ button:focus-visible {
 }
 
 .icon-button {
-  width: 100%;
-  min-width: 40px;
+  width: 40px;
 }
 
 .status-chip {
@@ -225,7 +207,7 @@ button:focus-visible {
 }
 
 .grow {
-  flex: 1 1 220px;
+  flex: 1 1 180px;
 }
 
 .save-bar {
@@ -286,6 +268,8 @@ button:focus-visible {
   margin-top: 6px;
 }
 
+/* ---------- Tables & Matrix ---------- */
+
 .table-wrap,
 .matrix-wrap {
   overflow: auto;
@@ -297,10 +281,10 @@ button:focus-visible {
 }
 
 .matrix-fit-stage {
-  width: max-content;
+  /* Only expand to natural width in fit mode; otherwise flow normally */
 }
 
-.matrix-wrap.fit .matrix {
+.matrix-wrap.fit .matrix-fit-stage {
   width: max-content;
 }
 
@@ -309,6 +293,10 @@ button:focus-visible {
   width: 100%;
   border-collapse: separate;
   border-spacing: 0;
+}
+
+.matrix-wrap.fit .matrix {
+  width: max-content;
 }
 
 .result-table th,
@@ -453,6 +441,8 @@ button:focus-visible {
   background: rgba(219, 69, 69, 0.75);
 }
 
+/* ---------- Bottom sheet ---------- */
+
 .sheet-backdrop {
   position: fixed;
   inset: 0;
@@ -498,6 +488,8 @@ button:focus-visible {
   font-size: 1.32rem;
 }
 
+/* ---------- Drill ---------- */
+
 .drill-result {
   min-height: 44px;
   padding: 8px 10px;
@@ -537,11 +529,7 @@ button:focus-visible {
   white-space: nowrap;
 }
 
-@media (max-width: 759px) {
-  .input-row.drill-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
+/* ---------- Presets & Scenarios ---------- */
 
 .preset-select {
   min-height: 44px;
@@ -584,6 +572,8 @@ button:focus-visible {
   opacity: 1;
 }
 
+/* ---------- Footer ---------- */
+
 .app-footer {
   margin-top: 48px;
   padding: 24px 16px;
@@ -609,6 +599,33 @@ button:focus-visible {
 
 .app-footer a:hover {
   color: var(--text-1);
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 759px) {
+  .input-row.drill-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (min-width: 480px) {
+  .app-shell {
+    padding:
+      max(16px, env(safe-area-inset-top))
+      max(16px, env(safe-area-inset-right))
+      max(24px, env(safe-area-inset-bottom))
+      max(16px, env(safe-area-inset-left));
+  }
+
+  .hero,
+  .panel {
+    padding: 18px;
+  }
+
+  .summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 760px) {
