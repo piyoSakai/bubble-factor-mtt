@@ -572,8 +572,8 @@ function App() {
         <section className="panel">
           <div className="panel-head">
             <h2>Players</h2>
-            <button type="button" className="primary-button" onClick={addPlayer}>
-              Add
+            <button type="button" className="icon-button add-button" onClick={addPlayer} aria-label="Add player">
+              +
             </button>
           </div>
           <div className="list-grid">
@@ -618,8 +618,8 @@ function App() {
         <section className="panel">
           <div className="panel-head">
             <h2>Payouts</h2>
-            <button type="button" className="primary-button" onClick={addPayout}>
-              Add
+            <button type="button" className="icon-button add-button" onClick={addPayout} aria-label="Add payout">
+              +
             </button>
           </div>
           <div className="list-grid">
