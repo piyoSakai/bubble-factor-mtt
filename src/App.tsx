@@ -23,28 +23,28 @@ type PresetDef = {
 };
 
 const STACKS_8P: { name: string; stack: number }[] = [
-  { name: 'UTG', stack: 60 },
-  { name: 'UTG1', stack: 83 },
-  { name: 'LJ', stack: 20 },
-  { name: 'HJ', stack: 71 },
-  { name: 'CO', stack: 73 },
-  { name: 'BTN', stack: 29 },
-  { name: 'SB', stack: 36 },
-  { name: 'BB', stack: 27 },
+  { name: 'P1', stack: 60 },
+  { name: 'P2', stack: 83 },
+  { name: 'P3', stack: 20 },
+  { name: 'P4', stack: 71 },
+  { name: 'P5', stack: 73 },
+  { name: 'P6', stack: 29 },
+  { name: 'P7', stack: 36 },
+  { name: 'P8', stack: 27 },
 ];
 
 const STACKS_5P: { name: string; stack: number }[] = [
-  { name: 'UTG', stack: 80 },
-  { name: 'CO', stack: 55 },
-  { name: 'BTN', stack: 40 },
-  { name: 'SB', stack: 70 },
-  { name: 'BB', stack: 55 },
+  { name: 'P1', stack: 80 },
+  { name: 'P2', stack: 55 },
+  { name: 'P3', stack: 40 },
+  { name: 'P4', stack: 70 },
+  { name: 'P5', stack: 55 },
 ];
 
 const STACKS_3P: { name: string; stack: number }[] = [
-  { name: 'BTN', stack: 120 },
-  { name: 'SB', stack: 80 },
-  { name: 'BB', stack: 100 },
+  { name: 'P1', stack: 120 },
+  { name: 'P2', stack: 80 },
+  { name: 'P3', stack: 100 },
 ];
 
 const PRESET_DEFS: PresetDef[] = [
