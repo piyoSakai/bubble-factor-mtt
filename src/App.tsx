@@ -582,29 +582,9 @@ function App() {
         <section className="panel">
           <div className="panel-head">
             <h2>Players</h2>
-            <div className="action-row">
-              <select
-                className="preset-select"
-                value=""
-                onChange={(e) => {
-                  loadPreset(e.target.value);
-                  e.target.value = '';
-                }}
-                aria-label="Load preset scenario"
-              >
-                <option value="" disabled>
-                  Preset…
-                </option>
-                {PRESET_DEFS.map((preset) => (
-                  <option key={preset.id} value={preset.id}>
-                    {preset.label}
-                  </option>
-                ))}
-              </select>
-              <button type="button" className="primary-button" onClick={addPlayer}>
-                Add
-              </button>
-            </div>
+            <button type="button" className="primary-button" onClick={addPlayer}>
+              Add
+            </button>
           </div>
           <div className="list-grid">
             {input.players.map((player, index) => (
@@ -678,25 +658,32 @@ function App() {
 
         <section className="panel">
           <div className="panel-head">
-            <div>
-              <h2>Scenarios</h2>
-              <p className="helper-copy">Quick save, reload, or export your current setup.</p>
-            </div>
+            <h2>Scenarios</h2>
           </div>
-          <div className="save-bar">
-            <label className="grow">
-              <span>Scenario name</span>
-              <input value={saveName} onChange={(event) => setSaveName(event.target.value)} />
-            </label>
-            <button type="button" className="ghost-button" onClick={exportScenario}>
-              Export
-            </button>
-            <button type="button" className="primary-button" onClick={saveScenario}>
-              Save
-            </button>
-          </div>
-          {savedScenarios.length > 0 ? (
-            <div className="scenario-list">
+
+          {/* Preset loader */}
+          <select
+            className="preset-select preset-select--block"
+            value=""
+            onChange={(e) => {
+              loadPreset(e.target.value);
+              e.target.value = '';
+            }}
+            aria-label="Load preset scenario"
+          >
+            <option value="" disabled>
+              Load preset…
+            </option>
+            {PRESET_DEFS.map((preset) => (
+              <option key={preset.id} value={preset.id}>
+                {preset.label}
+              </option>
+            ))}
+          </select>
+
+          {/* Saved scenarios */}
+          {savedScenarios.length > 0 && (
+            <div className="scenario-list scenario-list--spaced">
               {savedScenarios.map((scenario) => (
                 <article className="scenario-card" key={scenario.id}>
                   <div>
@@ -723,9 +710,21 @@ function App() {
                 </article>
               ))}
             </div>
-          ) : (
-            <div className="empty-state">No saved scenarios yet.</div>
           )}
+
+          {/* Save — subtle, at the bottom */}
+          <div className="save-bar save-bar--subtle">
+            <label className="grow">
+              <span>Save current setup</span>
+              <input value={saveName} onChange={(event) => setSaveName(event.target.value)} />
+            </label>
+            <button type="button" className="ghost-button" onClick={exportScenario}>
+              Export
+            </button>
+            <button type="button" className="ghost-button" onClick={saveScenario}>
+              Save
+            </button>
+          </div>
         </section>
 
         <section className="panel">

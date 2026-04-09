@@ -445,6 +445,12 @@ button:focus-visible {
   cursor: pointer;
 }
 
+.preset-select--block {
+  display: block;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
 .preset-select:focus-visible {
   outline: 2px solid #8ba5ff;
   outline-offset: 2px;
@@ -453,6 +459,20 @@ button:focus-visible {
 .preset-select option {
   color: #0f172a;
   background: #ffffff;
+}
+
+.scenario-list--spaced {
+  margin-bottom: 12px;
+}
+
+.save-bar--subtle {
+  padding-top: 12px;
+  border-top: 1px solid rgba(160, 176, 255, 0.08);
+  opacity: 0.72;
+}
+
+.save-bar--subtle:focus-within {
+  opacity: 1;
 }
 
 .app-footer {
