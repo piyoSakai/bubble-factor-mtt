@@ -76,7 +76,6 @@
 .ghost-button,
 .primary-button,
 .icon-button,
-.status-chip,
 .matrix-button {
   min-height: 44px;
   border-radius: 14px;
@@ -212,18 +211,6 @@ button:focus-visible {
   font-weight: 500;
 }
 
-.status-chip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 12px;
-  color: #aeb7cf;
-}
-
-.status-chip.live {
-  color: #f5f7fb;
-  background: rgba(96, 116, 255, 0.22);
-}
 
 .grow {
   flex: 1 1 180px;
@@ -620,6 +607,37 @@ button:focus-visible {
 
 .save-bar--subtle:focus-within {
   opacity: 1;
+}
+
+/* ---------- Recalculate bar ---------- */
+
+.recalc-bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  max-width: 1180px;
+  margin: 16px auto 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: rgba(13, 20, 39, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(167, 184, 255, 0.12);
+  border-radius: 18px 18px 0 0;
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.recalc-status {
+  color: #f7b445;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.recalc-bar .primary-button {
+  flex-shrink: 0;
 }
 
 /* ---------- Footer ---------- */

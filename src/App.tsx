@@ -719,23 +719,7 @@ function App() {
 
         <section className="panel">
           <div className="panel-head">
-            <div>
-              <h2>Results</h2>
-              <p className="helper-copy">Manual mode: press Recalculate after edits.</p>
-            </div>
-            <div className="action-row">
-              <button
-                type="button"
-                className="primary-button"
-                onClick={runCalculation}
-                disabled={isCalculating || !needsRecalculation}
-              >
-                {isCalculating ? 'Calculating…' : 'Recalculate'}
-              </button>
-              <span className={isCalculating ? 'status-chip live' : 'status-chip'}>
-                {isCalculating ? 'Calculating' : needsRecalculation ? 'Needs recalc' : 'Ready'}
-              </span>
-            </div>
+            <h2>Results</h2>
           </div>
 
           {result?.warnings.length ? (
@@ -970,6 +954,22 @@ function App() {
           </div>
         ) : null}
       </main>}
+
+      {view === 'calculator' && (needsRecalculation || isCalculating) && (
+        <div className="recalc-bar">
+          <span className="recalc-status">
+            {isCalculating ? 'Calculating…' : 'Needs recalculation'}
+          </span>
+          <button
+            type="button"
+            className="primary-button"
+            onClick={runCalculation}
+            disabled={isCalculating}
+          >
+            {isCalculating ? 'Calculating…' : 'Recalculate'}
+          </button>
+        </div>
+      )}
 
       <footer className="app-footer">
         <p>
