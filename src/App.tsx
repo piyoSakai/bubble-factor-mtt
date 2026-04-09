@@ -62,6 +62,9 @@ const bubbleFactorFormatter = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 1,
 });
 
+const formatRiskPremium = (value: number | null): string =>
+  value === null ? '-' : `${value > 0 ? '+' : ''}${Math.round(value)}%`;
+
 const readInitialState = (): CalculationInput => {
   const saved = window.localStorage.getItem(STORAGE_KEY);
   if (!saved) {
@@ -672,9 +675,7 @@ function App() {
                               }
                             >
                               <span className="cell-top">
-                                {cell.riskPremium === null
-                                  ? '-'
-                                  : `${cell.riskPremium > 0 ? '+' : ''}${Math.round(cell.riskPremium)}%`}
+                                {formatRiskPremium(cell.riskPremium)}
                               </span>
                               <span className="cell-bottom">
                                 {cell.bubbleFactor === null
@@ -730,7 +731,7 @@ function App() {
                   <strong>
                     {activeCellData.cell.riskPremium === null
                       ? 'N/A'
-                      : `${activeCellData.cell.riskPremium > 0 ? '+' : ''}${Math.round(activeCellData.cell.riskPremium)}%`}
+                      : formatRiskPremium(activeCellData.cell.riskPremium)}
                   </strong>
                 </article>
                 <article className="detail-card">

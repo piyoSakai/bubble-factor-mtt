@@ -367,17 +367,17 @@ describe('wizard regression fixtures', () => {
 
     const expectedBubbleFactor: Array<Array<number | null>> = [
       [null, 2.14, 1.18, 2.09, 2.1, 1.28, 1.39, 1.26],
-      [1.63, null, 1.13, 1.89, 1.95, 1.28, 1.19, 1.19],
-      [1.47, 1.51, null, 1.49, 1.05, 1.37, 1.4, 1.36],
+      [1.63, null, 1.13, 1.89, 1.95, 1.21, 1.28, 1.19],
+      [1.47, 1.51, null, 1.49, 1.5, 1.37, 1.4, 1.36],
       [1.79, 2.25, 1.15, null, 2.2, 1.24, 1.33, 1.22],
       [1.75, 2.26, 1.15, 2.13, null, 1.24, 1.32, 1.22],
       [1.65, 1.7, 1.28, 1.68, 1.68, null, 1.56, 1.46],
-      [1.76, 1.83, 1.25, 1.72, 1.43, 1.44, null, 1.39],
-      [1.01, 1.67, 1.29, 1.64, 1.65, 1.49, 1.53, null],
+      [1.76, 1.83, 1.25, 1.79, 1.8, 1.44, null, 1.39],
+      [1.61, 1.67, 1.29, 1.64, 1.65, 1.49, 1.53, null],
     ];
 
     const result = calculateAll(input);
-    const tolerance = 0.18;
+    const tolerance = 0.01;
 
     expectedBubbleFactor.forEach((row, rowIndex) => {
       row.forEach((expected, columnIndex) => {
@@ -396,6 +396,107 @@ describe('wizard regression fixtures', () => {
         if (diff > tolerance) {
           throw new Error(
             `case1 BF mismatch at [${rowIndex},${columnIndex}] expected=${expected} actual=${actual} diff=${diff.toFixed(3)}`,
+          );
+        }
+      });
+    });
+  });
+
+  wizardIt('matches case2 bubble-factor matrix within tolerance', () => {
+    const input = makeInput({
+      payouts: case1Top8Payouts,
+      players: [
+        { id: 'utg', name: 'UTG', stack: 32.13 },
+        { id: 'utg1', name: 'UTG1', stack: 23.13 },
+        { id: 'lj', name: 'LJ', stack: 25.13 },
+        { id: 'hj', name: 'HJ', stack: 34.13 },
+        { id: 'co', name: 'CO', stack: 22.13 },
+        { id: 'btn', name: 'BTN', stack: 17.13 },
+        { id: 'sb', name: 'SB', stack: 30.13 },
+        { id: 'bb', name: 'BB', stack: 18.13 },
+      ],
+    });
+
+    const expectedBubbleFactor: Array<Array<number | null>> = [
+      [null, 1.52, 1.6, 2.01, 1.49, 1.33, 1.86, 1.36],
+      [1.79, null, 1.74, 1.8, 1.66, 1.43, 1.78, 1.47],
+      [1.84, 1.67, null, 1.85, 1.61, 1.4, 1.83, 1.44],
+      [1.91, 1.49, 1.57, null, 1.46, 1.31, 1.8, 1.34],
+      [1.77, 1.7, 1.71, 1.78, null, 1.44, 1.75, 1.48],
+      [1.62, 1.57, 1.58, 1.63, 1.56, null, 1.61, 1.52],
+      [1.95, 1.6, 1.65, 1.97, 1.52, 1.35, null, 1.38],
+      [1.65, 1.59, 1.61, 1.67, 1.59, 1.5, 1.64, null],
+    ];
+
+    const result = calculateAll(input);
+    const tolerance = 0.05;
+
+    expectedBubbleFactor.forEach((row, rowIndex) => {
+      row.forEach((expected, columnIndex) => {
+        const actual = result.bubbleMatrix[rowIndex]?.[columnIndex]?.bubbleFactor ?? null;
+        if (expected === null) {
+          expect(actual).toBeNull();
+          return;
+        }
+
+        expect(
+          actual,
+          `case2 BF mismatch at [${rowIndex},${columnIndex}] expected=${expected} actual=${actual}`,
+        ).not.toBeNull();
+
+        const diff = Math.abs((actual as number) - expected);
+        if (diff > tolerance) {
+          throw new Error(
+            `case2 BF mismatch at [${rowIndex},${columnIndex}] expected=${expected} actual=${actual} diff=${diff.toFixed(3)}`,
+          );
+        }
+      });
+    });
+  });
+
+  wizardIt('matches case3 bubble-factor matrix within tolerance', () => {
+    const case3Payouts = [15.19, 10.96, 7.94, 5.76, 4.17, 3.06];
+    const input = makeInput({
+      payouts: case3Payouts,
+      players: [
+        { id: 'lj', name: 'LJ', stack: 100.13 },
+        { id: 'hj', name: 'HJ', stack: 30.13 },
+        { id: 'co', name: 'CO', stack: 35.13 },
+        { id: 'btn', name: 'BTN', stack: 25.13 },
+        { id: 'sb', name: 'SB', stack: 40.13 },
+        { id: 'bb', name: 'BB', stack: 10.13 },
+      ],
+    });
+
+    const expectedBubbleFactor: Array<Array<number | null>> = [
+      [null, 1.17, 1.2, 1.13, 1.25, 1.05],
+      [2.15, null, 1.79, 1.48, 1.84, 1.13],
+      [2.28, 1.59, null, 1.41, 1.92, 1.12],
+      [2.01, 1.66, 1.71, null, 1.75, 1.14],
+      [2.39, 1.49, 1.69, 1.35, null, 1.11],
+      [1.4, 1.27, 1.3, 1.24, 1.31, null],
+    ];
+
+    const result = calculateAll(input);
+    const tolerance = 0.05;
+
+    expectedBubbleFactor.forEach((row, rowIndex) => {
+      row.forEach((expected, columnIndex) => {
+        const actual = result.bubbleMatrix[rowIndex]?.[columnIndex]?.bubbleFactor ?? null;
+        if (expected === null) {
+          expect(actual).toBeNull();
+          return;
+        }
+
+        expect(
+          actual,
+          `case3 BF mismatch at [${rowIndex},${columnIndex}] expected=${expected} actual=${actual}`,
+        ).not.toBeNull();
+
+        const diff = Math.abs((actual as number) - expected);
+        if (diff > tolerance) {
+          throw new Error(
+            `case3 BF mismatch at [${rowIndex},${columnIndex}] expected=${expected} actual=${actual} diff=${diff.toFixed(3)}`,
           );
         }
       });
