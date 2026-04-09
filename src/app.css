@@ -34,6 +34,11 @@
   gap: 16px;
 }
 
+.hero-controls {
+  display: grid;
+  gap: 10px;
+}
+
 .eyebrow {
   margin: 0 0 6px;
   color: #8ba5ff;
@@ -92,6 +97,25 @@
 .icon-button:hover,
 .pill:hover {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.phase-select {
+  display: grid;
+  gap: 6px;
+}
+
+.phase-select span {
+  color: #9aa6c3;
+  font-size: 0.8rem;
+}
+
+.phase-select select {
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid rgba(164, 178, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  color: #f5f7fb;
+  padding: 0 10px;
 }
 
 button:disabled {

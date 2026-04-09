@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './app.css';
-import type { CalculationInput, CalculationResult, PlayerInput } from './types';
+import type {
+  ApproximationConfig,
+  ApproximationPhase,
+  ApproximationPreset,
+  CalculationInput,
+  CalculationResult,
+  PlayerInput,
+} from './types';
 
 const STORAGE_KEY = 'bubble-factor-mtt-state-v1';
 const SAVES_KEY = 'bubble-factor-mtt-saves-v1';
@@ -24,11 +31,119 @@ const defaultPlayers: PlayerInput[] = [
 
 const defaultPayouts = [7656, 5668, 4196, 3204, 2456, 1924, 1484, 1140];
 
+type PayoutRange = {
+  from: number;
+  to: number;
+  value: number;
+};
+
+const expandPayoutRanges = (ranges: PayoutRange[]): number[] => {
+  const payouts: number[] = [];
+  ranges.forEach((range) => {
+    for (let position = range.from; position <= range.to; position += 1) {
+      payouts.push(range.value);
+    }
+  });
+  return payouts;
+};
+
+const WIZARD_PAYOUT_PRESETS: Record<
+  ApproximationPreset,
+  { label: string; fieldSize: 200 | 1000; payouts: number[] }
+> = {
+  wizard_1000: {
+    label: 'MTT 1000 players',
+    fieldSize: 1000,
+    payouts: expandPayoutRanges([
+      { from: 1, to: 1, value: 30380 },
+      { from: 2, to: 2, value: 21920 },
+      { from: 3, to: 3, value: 15880 },
+      { from: 4, to: 4, value: 11520 },
+      { from: 5, to: 5, value: 8340 },
+      { from: 6, to: 6, value: 6120 },
+      { from: 7, to: 7, value: 4480 },
+      { from: 8, to: 8, value: 3280 },
+      { from: 9, to: 9, value: 2780 },
+      { from: 10, to: 10, value: 2040 },
+      { from: 11, to: 11, value: 1900 },
+      { from: 12, to: 13, value: 1640 },
+      { from: 14, to: 14, value: 1540 },
+      { from: 15, to: 17, value: 1400 },
+      { from: 18, to: 21, value: 1200 },
+      { from: 22, to: 23, value: 1100 },
+      { from: 24, to: 25, value: 1020 },
+      { from: 26, to: 33, value: 920 },
+      { from: 34, to: 35, value: 880 },
+      { from: 36, to: 41, value: 820 },
+      { from: 42, to: 53, value: 760 },
+      { from: 54, to: 57, value: 700 },
+      { from: 58, to: 73, value: 660 },
+      { from: 74, to: 77, value: 620 },
+      { from: 78, to: 89, value: 580 },
+      { from: 90, to: 101, value: 540 },
+      { from: 102, to: 116, value: 460 },
+      { from: 117, to: 125, value: 440 },
+      { from: 126, to: 150, value: 400 },
+    ]),
+  },
+  wizard_200: {
+    label: 'MTT 200 players',
+    fieldSize: 200,
+    payouts: expandPayoutRanges([
+      { from: 1, to: 1, value: 7656 },
+      { from: 2, to: 2, value: 5668 },
+      { from: 3, to: 3, value: 4196 },
+      { from: 4, to: 4, value: 3204 },
+      { from: 5, to: 5, value: 2456 },
+      { from: 6, to: 6, value: 1924 },
+      { from: 7, to: 7, value: 1484 },
+      { from: 8, to: 8, value: 1140 },
+      { from: 9, to: 9, value: 888 },
+      { from: 10, to: 11, value: 748 },
+      { from: 12, to: 13, value: 676 },
+      { from: 14, to: 17, value: 596 },
+      { from: 18, to: 23, value: 512 },
+      { from: 24, to: 30, value: 440 },
+    ]),
+  },
+};
+
+const PRESET_OPTIONS: Array<{ value: ApproximationPreset; label: string }> = [
+  { value: 'wizard_1000', label: 'MTT 1000 players' },
+  { value: 'wizard_200', label: 'MTT 200 players' },
+];
+
+const normalizeApproximationPreset = (value: unknown): ApproximationPreset =>
+  typeof value === 'string' && PRESET_OPTIONS.some((option) => option.value === value)
+    ? (value as ApproximationPreset)
+    : 'wizard_1000';
+
 const defaultState: CalculationInput = {
   players: defaultPlayers,
   payouts: defaultPayouts,
   stackUnit: 'bb',
+  approximation: {
+    enabled: false,
+    fieldSize: 1000,
+    phase: 'phase_near_bubble',
+    payoutPreset: 'wizard_1000',
+  },
 };
+
+const PHASE_OPTIONS: Array<{ value: ApproximationPhase; label: string }> = [
+  { value: 'phase_50', label: '50%' },
+  { value: 'phase_25', label: '25%' },
+  { value: 'phase_18', label: '18%' },
+  { value: 'phase_16', label: '16%' },
+  { value: 'phase_near_bubble', label: 'Near bubble' },
+  { value: 'phase_10', label: '10%' },
+  { value: 'phase_5', label: '5%' },
+];
+
+const normalizeApproximationPhase = (value: unknown): ApproximationPhase =>
+  typeof value === 'string' && PHASE_OPTIONS.some((option) => option.value === value)
+    ? (value as ApproximationPhase)
+    : 'phase_near_bubble';
 
 type WorkerResponse = {
   type: 'result';
@@ -83,6 +198,27 @@ const readInitialState = (): CalculationInput => {
       return defaultState;
     }
 
+    const approximationConfig: ApproximationConfig =
+      typeof parsed.approximation === 'object' && parsed.approximation !== null
+        ? (() => {
+            const inferredPreset =
+              parsed.approximation.payoutPreset ??
+              (parsed.approximation.fieldSize === 200 ? 'wizard_200' : 'wizard_1000');
+            const payoutPreset = normalizeApproximationPreset(inferredPreset);
+            return {
+              enabled: Boolean(parsed.approximation.enabled),
+              fieldSize: WIZARD_PAYOUT_PRESETS[payoutPreset].fieldSize,
+              phase: normalizeApproximationPhase(parsed.approximation.phase),
+              payoutPreset,
+            };
+          })()
+        : {
+            enabled: false,
+            fieldSize: 1000,
+            phase: 'phase_near_bubble',
+            payoutPreset: 'wizard_1000',
+          };
+
     return {
       players: parsed.players.map((player, index) => ({
         id: player.id || crypto.randomUUID(),
@@ -91,6 +227,7 @@ const readInitialState = (): CalculationInput => {
       })),
       payouts: parsed.payouts.map((payout) => (Number.isFinite(payout) ? payout : 0)),
       stackUnit: parsed.stackUnit === 'chips' ? 'chips' : 'bb',
+      approximation: approximationConfig,
     };
   } catch {
     return defaultState;
@@ -168,6 +305,12 @@ function App() {
   const requestKey = useMemo(() => JSON.stringify(input), [input]);
   const isCalculating = inFlightRequestKey !== null;
   const needsRecalculation = completedRequestKey !== requestKey;
+  const isApproxMode = Boolean(input.approximation?.enabled);
+  const currentPreset = input.approximation?.payoutPreset ?? 'wizard_1000';
+  const currentPresetDef = WIZARD_PAYOUT_PRESETS[currentPreset];
+  const phaseLabel =
+    PHASE_OPTIONS.find((option) => option.value === (input.approximation?.phase ?? 'phase_near_bubble'))
+      ?.label ?? 'Near bubble';
 
   useEffect(() => {
     const worker = new Worker(new URL('./workers/calculatorWorker.ts', import.meta.url), {
@@ -347,6 +490,20 @@ function App() {
     });
   };
 
+  const applyApproximationPreset = (preset: ApproximationPreset) => {
+    const presetDef = WIZARD_PAYOUT_PRESETS[preset];
+    setInput((current) => ({
+      ...current,
+      payouts: [...presetDef.payouts],
+      approximation: {
+        enabled: true,
+        fieldSize: presetDef.fieldSize,
+        phase: current.approximation?.phase ?? 'phase_near_bubble',
+        payoutPreset: preset,
+      },
+    }));
+  };
+
   const activeCellData = useMemo(() => {
     if (!activeCell || !result) {
       return null;
@@ -438,21 +595,95 @@ function App() {
               Exact ICM, Chip Chop, Bubble Factor, and Risk Premium.
             </p>
           </div>
-          <div className="pill-row">
-            <button
-              type="button"
-              className={input.stackUnit === 'bb' ? 'pill active' : 'pill'}
-              onClick={() => setInput((current) => ({ ...current, stackUnit: 'bb' }))}
-            >
-              BB
-            </button>
-            <button
-              type="button"
-              className={input.stackUnit === 'chips' ? 'pill active' : 'pill'}
-              onClick={() => setInput((current) => ({ ...current, stackUnit: 'chips' }))}
-            >
-              Chips
-            </button>
+          <div className="hero-controls">
+            <div className="pill-row">
+              <button
+                type="button"
+                className={input.stackUnit === 'bb' ? 'pill active' : 'pill'}
+                onClick={() => setInput((current) => ({ ...current, stackUnit: 'bb' }))}
+              >
+                BB
+              </button>
+              <button
+                type="button"
+                className={input.stackUnit === 'chips' ? 'pill active' : 'pill'}
+                onClick={() => setInput((current) => ({ ...current, stackUnit: 'chips' }))}
+              >
+                Chips
+              </button>
+            </div>
+            <div className="pill-row">
+              <button
+                type="button"
+                className={!isApproxMode ? 'pill active' : 'pill'}
+                onClick={() =>
+                  setInput((current) => ({
+                    ...current,
+                    approximation: {
+                      enabled: false,
+                      fieldSize: current.approximation?.fieldSize ?? currentPresetDef.fieldSize,
+                      phase: current.approximation?.phase ?? 'phase_near_bubble',
+                      payoutPreset: current.approximation?.payoutPreset ?? 'wizard_1000',
+                    },
+                  }))
+                }
+              >
+                Exact FT
+              </button>
+              <button
+                type="button"
+                className={isApproxMode ? 'pill active' : 'pill'}
+                onClick={() =>
+                  applyApproximationPreset(currentPreset)
+                }
+              >
+                M3 Approx
+              </button>
+            </div>
+            {isApproxMode ? (
+              <>
+                <label className="phase-select">
+                  <span>Wizard payout preset (field size)</span>
+                  <select
+                    value={currentPreset}
+                    onChange={(event) => {
+                      const nextPreset = normalizeApproximationPreset(event.target.value);
+                      applyApproximationPreset(nextPreset);
+                    }}
+                  >
+                    {PRESET_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="phase-select">
+                  <span>{input.approximation?.fieldSize ?? currentPresetDef.fieldSize}-player phase</span>
+                  <select
+                    value={input.approximation?.phase ?? 'phase_near_bubble'}
+                    onChange={(event) => {
+                      const nextPhase = event.target.value as ApproximationPhase;
+                      setInput((current) => ({
+                        ...current,
+                        approximation: {
+                          enabled: true,
+                          fieldSize: current.approximation?.fieldSize ?? currentPresetDef.fieldSize,
+                          phase: nextPhase,
+                          payoutPreset: current.approximation?.payoutPreset ?? currentPreset,
+                        },
+                      }));
+                    }}
+                  >
+                    {PHASE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </>
+            ) : null}
           </div>
         </section>
 
@@ -617,7 +848,12 @@ function App() {
           <div className="panel-head">
             <div>
               <h2>Results</h2>
-              <p className="helper-copy">Manual mode: press Recalculate after edits.</p>
+              <p className="helper-copy">
+                Manual mode: press Recalculate after edits.
+                {result?.meta?.mode === 'mtt-approx'
+                  ? ` Approx estimate active (${result.meta.fieldSize ?? currentPresetDef.fieldSize}-player, ${phaseLabel}, ${WIZARD_PAYOUT_PRESETS[result.meta.payoutPreset ?? currentPreset].label}).`
+                  : ''}
+              </p>
             </div>
             <div className="action-row">
               <button
