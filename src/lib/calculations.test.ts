@@ -212,6 +212,68 @@ describe('calculateAll', () => {
 });
 
 describe('wizard regression fixtures', () => {
+  const case1Players = [
+    { id: 'utg', name: 'UTG', stack: 60.13 },
+    { id: 'utg1', name: 'UTG1', stack: 83.13 },
+    { id: 'lj', name: 'LJ', stack: 20.13 },
+    { id: 'hj', name: 'HJ', stack: 71.13 },
+    { id: 'co', name: 'CO', stack: 73.13 },
+    { id: 'btn', name: 'BTN', stack: 29.13 },
+    { id: 'sb', name: 'SB', stack: 36.13 },
+    { id: 'bb', name: 'BB', stack: 27.13 },
+  ];
+
+  const case1Top8Payouts = [7656, 5668, 4196, 3204, 2456, 1924, 1484, 1140];
+  const case1AllPayouts = [
+    ...case1Top8Payouts,
+    888,
+    748, 748,
+    676, 676,
+    596, 596, 596, 596,
+    512, 512, 512, 512, 512, 512,
+    440, 440, 440, 440, 440, 440, 440,
+  ];
+
+  it('uses only top-8 payouts when there are 8 active players', () => {
+    const inputTop8 = makeInput({
+      players: case1Players,
+      payouts: case1Top8Payouts,
+    });
+    const inputAllPayouts = makeInput({
+      players: case1Players,
+      payouts: case1AllPayouts,
+    });
+
+    const resultTop8 = calculateAll(inputTop8);
+    const resultAllPayouts = calculateAll(inputAllPayouts);
+
+    expect(resultAllPayouts.equities).toEqual(resultTop8.equities);
+    expect(resultAllPayouts.chipChop).toEqual(resultTop8.chipChop);
+    expect(resultAllPayouts.bubbleMatrix).toEqual(resultTop8.bubbleMatrix);
+  });
+
+  it('includes BB stack when BB is positive', () => {
+    const withBB = calculateAll(
+      makeInput({
+        players: case1Players,
+        payouts: case1Top8Payouts,
+      }),
+    );
+    const withoutBB = calculateAll(
+      makeInput({
+        players: case1Players.map((player) =>
+          player.id === 'bb' ? { ...player, stack: 0 } : player,
+        ),
+        payouts: case1Top8Payouts,
+      }),
+    );
+
+    expect(withBB.equities).toHaveLength(8);
+    expect(withBB.bubbleMatrix).toHaveLength(8);
+    expect(withoutBB.equities).toHaveLength(7);
+    expect(withoutBB.bubbleMatrix).toHaveLength(7);
+  });
+
   const wizardRegressionEnabled = import.meta.env.VITE_RUN_WIZARD_REGRESSION === '1';
   const wizardIt = wizardRegressionEnabled ? it : it.skip;
 
@@ -220,17 +282,8 @@ describe('wizard regression fixtures', () => {
       // NOTE: Payout structure fixed by user for fixture comparisons.
       // This case is currently skipped by default because Wizard's spot model
       // and this app's "symmetric all-in study mode" assumptions are not aligned yet.
-      payouts: [7656, 5668, 4196, 3204, 2456, 1924, 1484, 1140],
-      players: [
-        { id: 'utg', name: 'UTG', stack: 60.13 },
-        { id: 'utg1', name: 'UTG1', stack: 83.13 },
-        { id: 'lj', name: 'LJ', stack: 20.13 },
-        { id: 'hj', name: 'HJ', stack: 71.13 },
-        { id: 'co', name: 'CO', stack: 73.13 },
-        { id: 'btn', name: 'BTN', stack: 29.13 },
-        { id: 'sb', name: 'SB', stack: 36.13 },
-        { id: 'bb', name: 'BB', stack: 27.13 },
-      ],
+      payouts: case1Top8Payouts,
+      players: case1Players,
     });
 
     const expectedBubbleFactor: Array<Array<number | null>> = [
