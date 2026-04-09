@@ -1,8 +1,8 @@
 # Design Document — Bubble Factor MTT
 
-**Version**: 1.0  
+**Version**: 1.1  
 **Author**: [YEBISU](https://x.com/YEBISU_NLH)  
-**Status**: Active (reflects implemented MVP)
+**Status**: Active (reflects current implementation including BF Drill)
 
 This document captures the product goals, algorithm definitions, and technical decisions
 that underpin the implementation. Because this is open-source software, all assumptions and
@@ -32,7 +32,7 @@ grow beyond that.
 
 ## 2. MVP Scope
 
-### Implemented (v0.x)
+### Implemented (v0.x – v1.x)
 
 - **ICM** — Malmuth–Harville recursive calculation, exact for N ≤ ~12 players.
 - **Chip Chop** — Proportional chip-based deal allocation displayed alongside ICM for comparison.
@@ -43,6 +43,8 @@ grow beyond that.
 - **Mobile-first layout** — Responsive design; matrix cells open a bottom sheet for detail.
 - **Matrix header extras** — Each player header shows stack (BB or chips), chip-leader (👑) and short-stack (💀) emoji, and average BF/RP as caller and shover.
 - **Summary grid** — ICM $EV, Chip Chop, average stack, and other key numbers at a glance.
+- **9 payout presets** — Loaded in one tap from the Scenarios panel (see §9 for the full list).
+- **BF Drill mode** — Separate page; random stacks (log-normal, configurable avg BB), 9 payout presets, per-cell scoring, streak counter (see §9).
 
 ### Out of Scope for MVP (v1.x / v2.x)
 
@@ -249,15 +251,18 @@ code paths that could exfiltrate data.
 | **M1** | ICM + BF matrix + Web Worker | ✅ Done |
 | **M2** | Chip Chop, Risk Premium, mobile UX, manual recalc, Vercel deploy | ✅ Done |
 | **M3** | Mid-field / bubble approximate mode | Archived (see `docs/M3_APPROX_POSTMORTEM.md`) |
+| **M2.5** | Payout presets (9 structures) + BF Drill page | ✅ Done |
 | **M4** | Spot tool (blind / ante / pot size inputs) | Planned |
-| **M5** | PKO prototype | Research |
+| **M5** | PKO / Progressive Knockout prototype | Research |
 
 ---
 
-## 9. BF Drill Plan (next feature)
+## 9. BF Drill (implemented)
 
 A training mode where users estimate BF values without seeing the matrix, then compare against
 exact calculated outputs. All scenarios use exact ICM — no approximation, no M3.
+
+Source: `src/DrillPage.tsx`, shared presets: `src/lib/presets.ts`.
 
 ### 9.1 Drill scope: Exact FT only
 
@@ -268,12 +273,19 @@ scenarios are explicitly out of scope until a reliable approximation model is de
 
 ### 9.2 Prompt format
 
-- Show the caller player (one row) with all BF cells hidden.
-- Player stacks are visible; opponent names and stacks are visible.
-- User enters BF guesses for every opponent in the row.
-- Submit reveals exact BF values with per-cell error and round score.
+- One caller is selected at random at the start of each round.
+- Opponent names and stacks are visible; the caller's BF row is hidden.
+- User enters a BF guess (decimal) for every opponent.
+- "Submit" reveals exact BF values with per-cell error and score.
+- "New round" re-randomises caller and stacks within the same payout preset.
 
-### 9.3 Payout presets (9 total)
+### 9.2.1 Stack generation
+
+Stacks are generated with a **log-normal distribution** (Box-Muller, σ = 0.65) normalised to a
+user-selected average: **20 BB / 40 BB / 60 BB**. This avoids training on fixed patterns while
+keeping stack distributions realistic for tournament play.
+
+### 9.3 Payout presets (9 structures)
 
 All dollar amounts are from the Wizard reference payout tables shown below.
 
@@ -334,8 +346,11 @@ To avoid bias from large-BF spots, scoring uses relative error:
 \text{cellScore} = 100 \times \max(0,\, 1 - \text{relErr})
 \]
 
-Round score is the mean of cell scores. Streak logic is threshold-based (all cells within a
-configurable relative-error bound, e.g. 15 %).
+Round score is the mean of cell scores across all guessed opponents.
+
+**Streak rule**: all cells must be within 15 % relative error. A successful round extends the
+streak counter; any cell outside the threshold resets it to 0. Session best and last score are
+tracked in component state (not persisted).
 
 ---
 
