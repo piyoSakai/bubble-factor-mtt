@@ -300,6 +300,10 @@ button:focus-visible {
   width: max-content;
 }
 
+.matrix-wrap.fit .matrix {
+  width: max-content;
+}
+
 .result-table,
 .matrix {
   width: 100%;
