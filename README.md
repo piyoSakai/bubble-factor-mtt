@@ -11,15 +11,17 @@ Calculates **Bubble Factor**, **Risk Premium**, **ICM equity**, and **Chip Chop*
 
 ## Features
 
-- **Bubble Factor matrix** — full N×N grid showing ICM pressure for every player match-up
+- **Bubble Factor matrix** — full N×N grid showing ICM pressure for every player match-up; compact headers with C/S tags to distinguish Call vs Shove at a glance
+- **Fit to screen** — one-tap matrix scaling for screenshot sharing
 - **Risk Premium** — shown as `+x%` over the 50% chip-EV baseline (symmetric all-in assumption)
 - **Exact ICM** (Malmuth–Harville) — for small to mid-size tables
 - **Chip Chop** — side-by-side comparison with ICM equity
+- **Sticky Recalculate bar** — appears at the bottom of the screen only when recalculation is needed; stays out of the way when results are up-to-date
 - **9 payout presets** — 1000-player / 200-player MTT FT, Satellite (3 variants), Winner-take-most, Small-field FT; loaded in one tap from the Scenarios panel
 - **Scenario save / load / export** — LocalStorage-backed, JSON export for sharing
 - **BF Drill mode** — training mode: guess BF values for a hidden caller row, then compare against exact ICM output; scored with relative-error per cell, round average, and streak counter
 - **Web Worker** — all computation off the main thread; no UI freeze
-- **Mobile-first** — designed for Android/iPhone browsers at 390 px and up
+- **Mobile-first** — designed for Android/iPhone browsers at 360 px and up
 
 ---
 
@@ -101,6 +103,7 @@ npm run test     # Vitest (calculation logic)
 | M2 | Chip Chop, Risk Premium, mobile UX, manual recalc, Vercel deploy | ✅ Done |
 | M3 | Mid-field approximate mode | Archived — see [`docs/M3_APPROX_POSTMORTEM.md`](docs/M3_APPROX_POSTMORTEM.md) |
 | M2.5 | Payout presets + BF Drill (random stacks, avg-BB selector, scoring) | ✅ Done |
+| M2.6 | Mobile responsive, compact matrix, sticky recalc bar, fit-to-screen, UI polish | ✅ Done |
 | M4 | Spot tool (blind / ante / pot size inputs) | Planned |
 | M5 | PKO / Progressive Knockout prototype | Research |
 

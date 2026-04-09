@@ -1,8 +1,8 @@
 # Design Document — Bubble Factor MTT
 
-**Version**: 1.1  
+**Version**: 1.2  
 **Author**: [YEBISU](https://x.com/YEBISU_NLH)  
-**Status**: Active (reflects current implementation including BF Drill)
+**Status**: Active (reflects current implementation including BF Drill and UI polish)
 
 This document captures the product goals, algorithm definitions, and technical decisions
 that underpin the implementation. Because this is open-source software, all assumptions and
@@ -38,10 +38,11 @@ grow beyond that.
 - **Chip Chop** — Proportional chip-based deal allocation displayed alongside ICM for comparison.
 - **Bubble Factor matrix** — N×N grid showing BF(i→j) for every ordered pair; diagonal is empty.
 - **Risk Premium** — Derived from BF using the 50 % Chip-EV baseline (see §4.3).
-- **Manual recalculation** — Triggered by a dedicated button; status indicators show *Calculating / Needs recalc / Ready*. Heavy scenarios (large N) never block the UI.
+- **Sticky recalculate bar** — Appears at the bottom of the screen only when recalculation is needed or calculation is in progress; hides when results are up-to-date. Heavy scenarios (large N) never block the UI.
 - **Web Worker** — All ICM/BF computation is offloaded from the main thread.
-- **Mobile-first layout** — Responsive design; matrix cells open a bottom sheet for detail.
-- **Matrix header extras** — Each player header shows stack (BB or chips), chip-leader (👑) and short-stack (💀) emoji, and average BF/RP as caller and shover.
+- **Mobile-first layout** — Responsive design; matrix cells open a bottom sheet for detail. Grid blowout prevention (`min-width: 0`) ensures the matrix never pushes the page wider than the viewport.
+- **Matrix header extras** — Compact headers: name + BB on one line, average BF/RP with colour-coded C (call, blue) / S (shove, orange) tags.
+- **Fit to screen** — One-tap matrix scaling mode for clean screenshot sharing.
 - **Summary grid** — ICM $EV, Chip Chop, average stack, and other key numbers at a glance.
 - **9 payout presets** — Loaded in one tap from the Scenarios panel (see §9 for the full list).
 - **BF Drill mode** — Separate page; random stacks (log-normal, configurable avg BB), 9 payout presets, per-cell scoring, streak counter (see §9).
@@ -222,11 +223,12 @@ code paths that could exfiltrate data.
 
 ### 6.4 Mobile UX
 
-- Mobile-first responsive layout; primary viewport target ~390 px wide.
-- Tap targets ≥ 44×44 CSS px.
-- BF matrix scrollable horizontally; cells open a bottom sheet for detail.
+- Mobile-first responsive layout; primary viewport target ~360 px wide (Pixel / iPhone SE).
+- Grid blowout prevention: all `.app` grid items use `min-width: 0` to stop wide matrix tables from inflating the page width.
+- Tap targets ≥ 44×44 CSS px; circular icon buttons for Add (+) and Remove (-).
+- BF matrix scrollable horizontally; cells open a bottom sheet for detail; "Fit to screen" mode scales the matrix to the viewport width for screenshots.
 - `inputmode="decimal"` on numeric fields; negative stacks clamped to 0 on blur.
-- Status indicators keep the user informed during calculation without blocking interaction.
+- Sticky recalculate bar appears at the bottom of the viewport when inputs change; disappears when results are up-to-date.
 
 ---
 
@@ -252,6 +254,7 @@ code paths that could exfiltrate data.
 | **M2** | Chip Chop, Risk Premium, mobile UX, manual recalc, Vercel deploy | ✅ Done |
 | **M3** | Mid-field / bubble approximate mode | Archived (see `docs/M3_APPROX_POSTMORTEM.md`) |
 | **M2.5** | Payout presets (9 structures) + BF Drill page | ✅ Done |
+| **M2.6** | Mobile responsive fix, compact matrix, sticky recalc bar, fit-to-screen, UI polish | ✅ Done |
 | **M4** | Spot tool (blind / ante / pot size inputs) | Planned |
 | **M5** | PKO / Progressive Knockout prototype | Research |
 
