@@ -14,6 +14,13 @@
   margin: 0 auto;
 }
 
+.view-switch {
+  display: flex;
+  gap: 8px;
+  max-width: 1180px;
+  margin: 0 auto 12px;
+}
+
 .hero,
 .panel,
 .stat-card {
@@ -142,6 +149,11 @@ button:disabled {
 
 .input-row.compact {
   grid-template-columns: minmax(0, 1fr) 44px;
+}
+
+.input-row.drill-row {
+  grid-template-columns: minmax(0, 1fr) repeat(3, minmax(74px, auto));
+  align-items: end;
 }
 
 label {
@@ -432,6 +444,37 @@ button:focus-visible {
   display: block;
   margin-top: 6px;
   font-size: 1.32rem;
+}
+
+.drill-result {
+  min-height: 44px;
+  padding: 8px 10px;
+  border-radius: 14px;
+  border: 1px solid rgba(162, 177, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  display: grid;
+  align-content: center;
+}
+
+.drill-result-label {
+  color: #9aa6c3;
+  font-size: 0.72rem;
+}
+
+.drill-result strong {
+  margin-top: 2px;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.drill-score-box strong {
+  color: #ffffff;
+}
+
+@media (max-width: 759px) {
+  .input-row.drill-row {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 
 .preset-select {

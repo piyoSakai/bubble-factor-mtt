@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import './app.css';
 import type { CalculationInput, CalculationResult, PlayerInput } from './types';
+import DrillPage from './DrillPage';
+import {
+  buildInputFromPreset,
+  buildPlayersFromPreset,
+  DEFAULT_PRESET_ID,
+  PRESET_DEFS,
+} from './lib/presets';
 
 const STORAGE_KEY = 'bubble-factor-mtt-state-v1';
 const SAVES_KEY = 'bubble-factor-mtt-saves-v1';
@@ -11,108 +18,12 @@ const createPlayer = (index: number, stack: number): PlayerInput => ({
   stack,
 });
 
-// ---------------------------------------------------------------------------
-// Preset definitions (9 scenarios — matches BF Drill preset list in DESIGN.md)
-// ---------------------------------------------------------------------------
-
-type PresetDef = {
-  id: string;
-  label: string;
-  stackDefs: { name: string; stack: number }[];
-  payouts: number[];
-};
-
-const STACKS_8P: { name: string; stack: number }[] = [
-  { name: 'P1', stack: 60 },
-  { name: 'P2', stack: 83 },
-  { name: 'P3', stack: 20 },
-  { name: 'P4', stack: 71 },
-  { name: 'P5', stack: 73 },
-  { name: 'P6', stack: 29 },
-  { name: 'P7', stack: 36 },
-  { name: 'P8', stack: 27 },
-];
-
-const STACKS_5P: { name: string; stack: number }[] = [
-  { name: 'P1', stack: 80 },
-  { name: 'P2', stack: 55 },
-  { name: 'P3', stack: 40 },
-  { name: 'P4', stack: 70 },
-  { name: 'P5', stack: 55 },
-];
-
-const STACKS_3P: { name: string; stack: number }[] = [
-  { name: 'P1', stack: 120 },
-  { name: 'P2', stack: 80 },
-  { name: 'P3', stack: 100 },
-];
-
-const PRESET_DEFS: PresetDef[] = [
-  {
-    id: 'A1',
-    label: 'A1 — 1000-player FT (8 left)',
-    stackDefs: STACKS_8P,
-    payouts: [30380, 21920, 15880, 11520, 8340, 6120, 4480, 3280],
-  },
-  {
-    id: 'A1p',
-    label: "A1\u2019 — 1000-player FT (5 left)",
-    stackDefs: STACKS_5P,
-    payouts: [30380, 21920, 15880, 11520, 8340],
-  },
-  {
-    id: 'A1pp',
-    label: "A1\u2019\u2019 — 1000-player FT (3 left)",
-    stackDefs: STACKS_3P,
-    payouts: [30380, 21920, 15880],
-  },
-  {
-    id: 'A2',
-    label: 'A2 — 200-player FT (8 left)',
-    stackDefs: STACKS_8P,
-    payouts: [7656, 5668, 4196, 3204, 2456, 1924, 1484, 1140],
-  },
-  {
-    id: 'B',
-    label: 'B — Satellite top 3 ITM',
-    stackDefs: STACKS_8P,
-    payouts: [1000, 1000, 1000, 0, 0, 0, 0, 0],
-  },
-  {
-    id: 'Bp',
-    label: "B\u2019 — Satellite top 6 ITM (flat)",
-    stackDefs: STACKS_8P,
-    payouts: [1000, 1000, 1000, 1000, 1000, 1000, 0, 0],
-  },
-  {
-    id: 'Bpp',
-    label: "B\u2019\u2019 — Satellite top 6 ITM (6th = half)",
-    stackDefs: STACKS_8P,
-    payouts: [1000, 1000, 1000, 1000, 1000, 500, 0, 0],
-  },
-  {
-    id: 'C',
-    label: 'C — Winner-take-most',
-    stackDefs: STACKS_8P,
-    payouts: [40000, 8000, 2400, 800, 300, 150, 100, 50],
-  },
-  {
-    id: 'E',
-    label: 'E — Small-field FT (top 6 ITM)',
-    stackDefs: STACKS_8P,
-    payouts: [4500, 3000, 2000, 1300, 900, 800, 0, 0],
-  },
-];
-
-// ---------------------------------------------------------------------------
-
-const defaultPlayers: PlayerInput[] = STACKS_8P.map((def) => ({
-  id: crypto.randomUUID(),
-  name: def.name,
-  stack: def.stack,
-}));
-
-const defaultPayouts = [7656, 5668, 4196, 3204, 2456, 1924, 1484, 1140];
+const defaultPreset = PRESET_DEFS.find((preset) => preset.id === DEFAULT_PRESET_ID) ?? PRESET_DEFS[0];
+if (!defaultPreset) {
+  throw new Error('No presets configured.');
+}
+const defaultPlayers: PlayerInput[] = buildPlayersFromPreset(defaultPreset);
+const defaultPayouts = [...defaultPreset.payouts];
 
 const defaultState: CalculationInput = {
   players: defaultPlayers,
@@ -137,6 +48,10 @@ type ActiveCell = {
   rowIndex: number;
   columnIndex: number;
 };
+
+type AppView = 'calculator' | 'drill';
+
+const readViewFromHash = (): AppView => (window.location.hash === '#/drill' ? 'drill' : 'calculator');
 
 const numberFormatter = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
@@ -247,6 +162,7 @@ const parseNonNegativeNumber = (value: string): number => {
 };
 
 function App() {
+  const [view, setView] = useState<AppView>(() => readViewFromHash());
   const [input, setInput] = useState<CalculationInput>(() => readInitialState());
   const [result, setResult] = useState<CalculationResult | null>(null);
   const [completedRequestKey, setCompletedRequestKey] = useState('');
@@ -258,6 +174,12 @@ function App() {
   const requestKey = useMemo(() => JSON.stringify(input), [input]);
   const isCalculating = inFlightRequestKey !== null;
   const needsRecalculation = completedRequestKey !== requestKey;
+
+  useEffect(() => {
+    const onHashChange = () => setView(readViewFromHash());
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
 
   useEffect(() => {
     const worker = new Worker(new URL('./workers/calculatorWorker.ts', import.meta.url), {
@@ -384,16 +306,19 @@ function App() {
 
   const loadPreset = (presetId: string) => {
     const preset = PRESET_DEFS.find((p) => p.id === presetId);
-    if (!preset) return;
-    setInput({
-      players: preset.stackDefs.map((def) => ({
-        id: crypto.randomUUID(),
-        name: def.name,
-        stack: def.stack,
-      })),
-      payouts: preset.payouts,
-      stackUnit: 'bb',
-    });
+    if (!preset) {
+      return;
+    }
+    setInput(buildInputFromPreset(preset, 'bb'));
+  };
+
+  const navigateTo = (nextView: AppView) => {
+    const nextHash = nextView === 'drill' ? '#/drill' : '#/';
+    if (window.location.hash !== nextHash) {
+      window.location.hash = nextHash;
+      return;
+    }
+    setView(nextView);
   };
 
   const saveScenario = () => {
@@ -529,7 +454,28 @@ function App() {
 
   return (
     <div className="app-shell">
-      <main className="app">
+      <div className="view-switch" role="tablist" aria-label="Page switch">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === 'calculator'}
+          className={view === 'calculator' ? 'pill active' : 'pill'}
+          onClick={() => navigateTo('calculator')}
+        >
+          Calculator
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={view === 'drill'}
+          className={view === 'drill' ? 'pill active' : 'pill'}
+          onClick={() => navigateTo('drill')}
+        >
+          BF Drill
+        </button>
+      </div>
+
+      {view === 'drill' ? <DrillPage /> : <main className="app">
         <section className="hero">
           <div>
             <p className="eyebrow">Privacy-first · Works offline</p>
@@ -954,7 +900,7 @@ function App() {
             </section>
           </div>
         ) : null}
-      </main>
+      </main>}
 
       <footer className="app-footer">
         <p>
