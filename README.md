@@ -1,5 +1,8 @@
 # Bubble Factor MTT
 
+[![CI](https://github.com/piyoSakai/bubble-factor-mtt/actions/workflows/ci.yml/badge.svg)](https://github.com/piyoSakai/bubble-factor-mtt/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A local-first, mobile-first study tool for MTT poker tournaments.
 
 Calculates **Bubble Factor**, **Risk Premium**, **ICM equity**, and **Chip Chop** entirely in the browser — no data ever leaves your device.
@@ -15,6 +18,14 @@ Calculates **Bubble Factor**, **Risk Premium**, **ICM equity**, and **Chip Chop*
 - **Scenario save / load / export** — LocalStorage-backed, JSON export for sharing
 - **Web Worker** — all computation off the main thread; no UI freeze
 - **Mobile-first** — designed for Android/iPhone browsers at 390 px and up
+
+---
+
+## Algorithm & Design
+
+All formulas, assumptions, and GTO Wizard validation results are documented in
+[docs/DESIGN.md](docs/DESIGN.md). The implementation is fully open, so you can audit
+every calculation step.
 
 ---
 
