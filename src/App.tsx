@@ -566,14 +566,26 @@ function App() {
                 <tr>
                   <th className="sticky">Call vs shove</th>
                   {visiblePlayers.map((player) => (
-                    <th key={`head-${player.id}`}>{player.name}</th>
+                    <th key={`head-${player.id}`}>
+                    <span>{player.name}</span>
+                    <span className="matrix-header-stack">
+                      {numberFormatter.format(player.stack)}
+                      {input.stackUnit === 'bb' ? ' BB' : ''}
+                    </span>
+                  </th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {visiblePlayers.map((rowPlayer, rowIndex) => (
                   <tr key={`row-${rowPlayer.id}`}>
-                    <th className="sticky">{rowPlayer.name}</th>
+                    <th className="sticky">
+                      <span>{rowPlayer.name}</span>
+                      <span className="matrix-header-stack">
+                        {numberFormatter.format(rowPlayer.stack)}
+                        {input.stackUnit === 'bb' ? ' BB' : ''}
+                      </span>
+                    </th>
                     {visiblePlayers.map((columnPlayer, columnIndex) => {
                       const cell = result?.bubbleMatrix[rowIndex]?.[columnIndex];
                       const toneClass = getCellTone(cell?.bubbleFactor ?? null);

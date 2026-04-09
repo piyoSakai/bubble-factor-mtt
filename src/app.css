@@ -338,6 +338,15 @@ button:focus-visible {
   background: rgba(219, 69, 69, 0.34);
 }
 
+.matrix-header-stack {
+  display: block;
+  margin-top: 3px;
+  color: #6e7d9e;
+  font-size: 0.78rem;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+
 .legend-item {
   display: inline-flex;
   align-items: center;
