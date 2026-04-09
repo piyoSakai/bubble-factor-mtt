@@ -49,12 +49,17 @@ type ActiveCell = {
 };
 
 const numberFormatter = new Intl.NumberFormat('en-US', {
-  maximumFractionDigits: 2,
+  maximumFractionDigits: 0,
 });
 
 const valueFormatter = new Intl.NumberFormat('en-US', {
-  maximumFractionDigits: 2,
+  maximumFractionDigits: 0,
   minimumFractionDigits: 0,
+});
+
+const bubbleFactorFormatter = new Intl.NumberFormat('en-US', {
+  maximumFractionDigits: 1,
+  minimumFractionDigits: 1,
 });
 
 const readInitialState = (): CalculationInput => {
@@ -661,10 +666,14 @@ function App() {
                               }
                             >
                               <span className="cell-top">
-                                {cell.riskPremium === null ? '-' : `${cell.riskPremium > 0 ? '+' : ''}${cell.riskPremium}%`}
+                                {cell.riskPremium === null
+                                  ? '-'
+                                  : `${cell.riskPremium > 0 ? '+' : ''}${Math.round(cell.riskPremium)}%`}
                               </span>
                               <span className="cell-bottom">
-                                {cell.bubbleFactor === null ? '-' : cell.bubbleFactor.toFixed(2)}
+                                {cell.bubbleFactor === null
+                                  ? '-'
+                                  : bubbleFactorFormatter.format(cell.bubbleFactor)}
                               </span>
                             </button>
                           )}
@@ -715,7 +724,7 @@ function App() {
                   <strong>
                     {activeCellData.cell.riskPremium === null
                       ? 'N/A'
-                      : `${activeCellData.cell.riskPremium > 0 ? '+' : ''}${activeCellData.cell.riskPremium}%`}
+                      : `${activeCellData.cell.riskPremium > 0 ? '+' : ''}${Math.round(activeCellData.cell.riskPremium)}%`}
                   </strong>
                 </article>
                 <article className="detail-card">
@@ -723,7 +732,7 @@ function App() {
                   <strong>
                     {activeCellData.cell.bubbleFactor === null
                       ? 'N/A'
-                      : activeCellData.cell.bubbleFactor.toFixed(2)}
+                      : bubbleFactorFormatter.format(activeCellData.cell.bubbleFactor)}
                   </strong>
                 </article>
                 <article className="detail-card">
