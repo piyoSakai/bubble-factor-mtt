@@ -7,7 +7,7 @@ const SAVES_KEY = 'bubble-factor-mtt-saves-v1';
 
 const createPlayer = (index: number, stack: number): PlayerInput => ({
   id: crypto.randomUUID(),
-  name: `Player ${index + 1}`,
+  name: `P${index + 1}`,
   stack,
 });
 
@@ -72,7 +72,7 @@ const readInitialState = (): CalculationInput => {
     return {
       players: parsed.players.map((player, index) => ({
         id: player.id || crypto.randomUUID(),
-        name: player.name || `Player ${index + 1}`,
+        name: player.name || `P${index + 1}`,
         stack: Number.isFinite(player.stack) ? player.stack : 0,
       })),
       payouts: parsed.payouts.map((payout) => (Number.isFinite(payout) ? payout : 0)),
@@ -200,6 +200,23 @@ function App() {
     () => visiblePlayers.reduce((total, player) => total + player.stack, 0),
     [visiblePlayers],
   );
+
+  const chipLeaderStack = useMemo(
+    () => (visiblePlayers.length > 0 ? Math.max(...visiblePlayers.map((p) => p.stack)) : 0),
+    [visiblePlayers],
+  );
+
+  const shortStackVal = useMemo(
+    () => (visiblePlayers.length > 0 ? Math.min(...visiblePlayers.map((p) => p.stack)) : 0),
+    [visiblePlayers],
+  );
+
+  const getPlayerEmoji = (stack: number): string => {
+    if (visiblePlayers.length < 2 || chipLeaderStack === shortStackVal) return '';
+    if (stack === chipLeaderStack) return '👑';
+    if (stack === shortStackVal) return '💀';
+    return '';
+  };
 
   const updatePlayer = (playerId: string, nextValue: Partial<PlayerInput>) => {
     setInput((current) => ({
@@ -387,7 +404,12 @@ function App() {
             {input.players.map((player, index) => (
               <div className="input-row" key={player.id}>
                 <label>
-                  <span>Name</span>
+                  <span>
+                    Name
+                    {getPlayerEmoji(player.stack) && (
+                      <span className="player-badge">{getPlayerEmoji(player.stack)}</span>
+                    )}
+                  </span>
                   <input
                     value={player.name}
                     onChange={(event) => updatePlayer(player.id, { name: event.target.value })}
@@ -531,7 +553,12 @@ function App() {
               <tbody>
                 {visiblePlayers.map((player, index) => (
                   <tr key={player.id}>
-                    <td>{player.name}</td>
+                    <td>
+                      {player.name}
+                      {getPlayerEmoji(player.stack) && (
+                        <span className="player-badge">{getPlayerEmoji(player.stack)}</span>
+                      )}
+                    </td>
                     <td>{numberFormatter.format(player.stack)}</td>
                     <td>{valueFormatter.format(result?.equities[index] ?? 0)}</td>
                     <td>{valueFormatter.format(result?.chipChop[index] ?? 0)}</td>
@@ -567,7 +594,12 @@ function App() {
                   <th className="sticky">Call vs shove</th>
                   {visiblePlayers.map((player) => (
                     <th key={`head-${player.id}`}>
-                    <span>{player.name}</span>
+                    <span>
+                      {player.name}
+                      {getPlayerEmoji(player.stack) && (
+                        <span className="player-badge">{getPlayerEmoji(player.stack)}</span>
+                      )}
+                    </span>
                     <span className="matrix-header-stack">
                       {numberFormatter.format(player.stack)}
                       {input.stackUnit === 'bb' ? ' BB' : ''}
@@ -580,7 +612,12 @@ function App() {
                 {visiblePlayers.map((rowPlayer, rowIndex) => (
                   <tr key={`row-${rowPlayer.id}`}>
                     <th className="sticky">
-                      <span>{rowPlayer.name}</span>
+                      <span>
+                        {rowPlayer.name}
+                        {getPlayerEmoji(rowPlayer.stack) && (
+                          <span className="player-badge">{getPlayerEmoji(rowPlayer.stack)}</span>
+                        )}
+                      </span>
                       <span className="matrix-header-stack">
                         {numberFormatter.format(rowPlayer.stack)}
                         {input.stackUnit === 'bb' ? ' BB' : ''}

@@ -338,6 +338,12 @@ button:focus-visible {
   background: rgba(219, 69, 69, 0.34);
 }
 
+.player-badge {
+  margin-left: 5px;
+  font-style: normal;
+  line-height: 1;
+}
+
 .matrix-header-stack {
   display: block;
   margin-top: 3px;
