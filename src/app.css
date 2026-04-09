@@ -471,6 +471,20 @@ button:focus-visible {
   color: #ffffff;
 }
 
+.drill-setup-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.drill-setup-label {
+  color: #9aa6c3;
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
 @media (max-width: 759px) {
   .input-row.drill-row {
     grid-template-columns: minmax(0, 1fr);
