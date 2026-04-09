@@ -248,7 +248,7 @@ code paths that could exfiltrate data.
 | **M0** | Algorithm spec, BF movement rule definition | ✅ Done |
 | **M1** | ICM + BF matrix + Web Worker | ✅ Done |
 | **M2** | Chip Chop, Risk Premium, mobile UX, manual recalc, Vercel deploy | ✅ Done |
-| **M3** | Mid-field / bubble approximate mode | Planned |
+| **M3** | Mid-field / bubble approximate mode | Archived (see `docs/M3_APPROX_POSTMORTEM.md`) |
 | **M4** | Spot tool (blind / ante / pot size inputs) | Planned |
 | **M5** | PKO prototype | Research |
 
